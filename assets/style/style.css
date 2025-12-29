@@ -1,0 +1,37 @@
+@import url('./reset.css');
+@import url('./msgbox.css');
+@import url('./calendar.css');
+@import url('./calculator.css');
+@import url('./wheelpicker.css');
+
+label {
+    min-width: 6rem;
+}
+
+#frmDemo {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.control {
+    display: flex;
+}
+
+/* styling the WheelPicker inputs... */
+input[role="wheel"] {
+    width: 6rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+label:has(input[role="wheel"]) {
+    display: flex;
+}
+
+label:has(input[role="wheel"]) input[role="wheel"] {
+    margin-left: 3rem;
+}

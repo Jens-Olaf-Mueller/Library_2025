@@ -1,0 +1,140 @@
+/**
+ * Do not change the names of the following CSS properties!
+ * They are used by the messagebox class in order to set
+ * automatically the correct title bar color.
+ */
+
+:root {
+    --msg-text-color: inherit;
+    --msg-font-weight: bold;
+    --msg-title-color: whitesmoke;
+    --msg-gradient-color-from: navy;
+    --msg-gradient-color-to: whitesmoke;
+    --msg-shadow-color: #00000040;
+    --msg-background-color: whitesmoke;
+    --msg-button-background-hover-color: navy;
+    --msg-button-text-hover-color: whitesmoke;
+    --msg-button-color: #e7e7e7; /* f0f0f0 buttonface */
+    --msg-button-border-color: lavender;
+    --msg-button-border-radius: 4px;
+    --msg-border-radius: 8px;
+    --msg-box-padding: 1rem;
+
+    --msg-fade-duration: 300ms;
+    --msg-fade-timing: ease;
+}
+
+/* styling the dialog */
+.msg-dialog {
+    display: inline-block;
+    max-width: 50vw;
+    height: auto;
+    word-wrap: break-word;
+    background-color: var(--msg-background-color, whitesmoke);
+    border-radius: var(--msg-border-radius);
+    box-shadow: 8px 8px 16px var(--msg-shadow-color);
+    padding: 0 var(--msg-box-padding, 1rem) var(--msg-box-padding, 1rem);
+
+    /* === Smooth fade & scale animation for MessageBox === */
+    opacity: 0;
+    /* transform: scale(0.95); */
+    transition:
+        opacity var(--msg-fade-duration, 0.3s) var(--msg-fade-timing, ease),
+        transform var(--msg-fade-duration, 0.3s) var(--msg-fade-timing, ease);
+}
+
+
+.msg-dialog.visible {
+    opacity: 1;
+}
+
+/* titlebar whether with or without gradient */
+.msg-titlebar {
+    position: relative;
+    top: 0;
+    left: calc(-1 * var(--msg-box-padding, 1rem));
+    width: calc(100% + 2 * var(--msg-box-padding, 1rem));
+    border-radius: var(--msg-border-radius) var(--msg-border-radius) 0 0;
+    background: linear-gradient(
+                to right,
+                var(--msg-gradient-color-from) 0,
+                var(--msg-gradient-color-to) 100%);
+}
+
+#msgCaption{
+    margin: 0 !important;
+    padding: 0.5rem 1rem !important;
+    color: var(--msg-title-color);
+}
+
+.msg-Prompt {
+    display: block;
+    margin-block: 1rem !important;
+    color: var(--msg-text-color);
+    font-weight: var(--msg-font-weight);
+}
+
+.msg-button {
+    margin-top: 1rem !important;
+    margin-right: 1rem !important;
+    padding: 0.5rem !important;
+    min-width: 6rem !important;
+    cursor: pointer;
+    outline: 1px solid var(--msg-button-border-color);
+    border: none;
+    border-radius: var(--msg-button-border-radius, 4px);
+    background-color: var(--msg-button-color);
+    box-shadow: 4px 4px 8px #aaa;
+    color: var(--msg-text-color);
+}
+
+.msg-button:hover {
+    outline: 1px solid transparent;
+    box-shadow: 4px 4px 16px #777;
+    background-color: var(--msg-button-background-hover-color, transparent);
+    color: var(--msg-button-text-hover-color, black);
+}
+
+.msg-button:active {
+    outline: 3px inset var(--msg-button-border-color);
+    transform: translate(2px, 3px);
+}
+
+/* styling the optional close button */
+#msg-btn-close {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    aspect-ratio: 1 / 1;
+    padding: 0.25rem 0.5rem;
+    background-color: transparent;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+#msg-btn-close:hover {
+    font-weight: bolder;
+    backdrop-filter: brightness(0.66);
+    color: var(--msg-button-text-hover-color, black);
+    color: whitesmoke;
+    opacity: 0.5;
+}
+
+@media (max-width: 1280px) {
+    .msg-dialog {
+        max-width: 90vw;
+    }
+}
+
+@media(max-width: 768px) {
+    .msg-dialog {
+        max-width: 95vw;
+    }
+}
+
+@media(max-width: 320px) {
+    .msg-dialog {
+        max-width: 98vw;
+    }
+}

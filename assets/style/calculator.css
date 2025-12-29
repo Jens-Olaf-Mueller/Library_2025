@@ -1,0 +1,219 @@
+:root {
+    --bgColor: #c1c1c4;
+    --podShadow1: #000000a8;
+    --podShadow2: #ffffff33;
+
+    --calc-grid-gap: 0.9rem;
+    --calc-button-width: 3.4rem;
+    --calc-button-height: 2.75rem;
+    --calc-button-border-radius: 0.5rem;
+    --calc-button-double-border-radius: 0.5rem;
+    --calc-button-bg-color: #ecf0f3;
+    --calc-button-text-color: #444;
+    --calc-button-special-color: #5166d6;
+    --calc-button-memory-color: #bdbdbd;
+
+    --calc-dark-shadow: #b0b0b0;
+    --calc-light-shadow: white;
+
+    --calc-display-border-radius: 0.5rem;
+    --calc-display-bg-color: #ecf0f3;
+    --calc-display-color: #5166d6;
+    --displayTextShadow: -1px -1px 2px white, 2px 2px 2px #00000066;
+}
+
+body {
+    min-height: 100vh;
+    background: #dedede;
+}
+
+.flx-end {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+}
+
+.calculator-pod {
+    --paddingTop: calc((100vh - 7 * var(--calc-button-height) - 7 * var(--calc-grid-gap) - 5.5rem - var(--navbar-height)) / 2);
+    padding: var(--paddingTop) 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(min(390px, 100%) - 12px);  /* 6 px links + 6 px rechts */
+    display: grid;
+    grid-template-columns: repeat(5, var(--calc-button-width));
+    justify-content: center;
+    justify-items: center;
+    grid-gap: var(--calc-grid-gap);
+    background: linear-gradient(135deg, var(--bg2), var(--bg1));
+    outline: 12px outset #00000010;
+    border-radius: 0.25rem;
+    opacity: 1;
+    animation: fadeIn 250ms ease-in;
+    z-index: 999;
+}
+
+.calculator-pod[hidden] {
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity:0;
+    }
+    to {
+        opacity:1;
+    }
+ }
+
+/* ############################################ */
+/*                   DISPLAY                    */
+/* ############################################ */
+.display {
+    display: grid;
+    grid-template-rows: 1rem 1fr;
+    grid-column: span 5;
+    height: 5.5rem;
+    width: 102%;
+    padding: 0.6rem;
+    box-shadow: inset 5px 5px 5px var(--calc-dark-shadow), inset -5px -5px 5px var(--calc-light-shadow);
+    border-radius: var(--calc-display-border-radius);
+    font-size: 2rem;
+    color: var(--calc-display-color);
+    background-color: var(--calc-display-bg-color);
+    text-shadow: var(--displayTextShadow);
+}
+
+.status-bar {
+    display: grid;
+    grid-template-columns: 1rem 1fr;
+    align-items: center;
+    font-size: x-small;
+}
+
+#divPrevOperand {
+    font-size: 0.75rem;
+}
+
+button.calc-btn {
+    font-size: 1.25rem;
+    font-weight: bold;
+    height: var(--calc-button-height);
+    /* width: calc(min(390px, 100vw) / 6.95);  */
+    width: 100%;
+    max-width: 3.6rem;
+    border: none;
+    border-radius: var(--calc-button-border-radius);
+    background: none;
+    color: var(--calc-button-text-color);
+    outline: none;
+    box-shadow: -6px -6px 9px var(--calc-light-shadow), 6px 6px 9px var(--calc-dark-shadow);
+    transition: transform .1s ease, filter .1s ease;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation; /* disables the zoom on double-tap */
+}
+
+button.calc-btn:hover {
+    filter: brightness(0.85);
+    /* transform: scale(1.05); */
+    transform: translate(1px, 1px);
+}
+
+
+button.calc-btn:active,
+button.calc-btn:active:hover {
+    box-shadow: inset 5px 5px 5px var(--calc-dark-shadow), inset -5px -5px 5px var(--calc-light-shadow);
+    filter: none;
+    transform: translate(2px, 3px);
+}
+
+button.memory {
+    background-color: var(--calc-button-memory-color);
+    font-size: smaller;
+    font-weight: bold;
+}
+
+button.operator, button.operator:hover {
+    color: tomato;
+    font-weight: bold;
+}
+
+button.zero {
+    grid-column: span 2;
+    min-width: calc(2 * var(--calc-button-width) + var(--calc-grid-gap));
+    border-radius: var(--calc-button-double-border-radius);
+}
+
+button.equals {
+    grid-row: span 2;
+    grid-column: 5/6;
+    height: auto;
+    font-weight: bolder;
+    color: var(--calc-button-special-color);
+    border-radius: var(--calc-button-double-border-radius);
+}
+
+/* if there is a buddy, make sure the equals-button is shrinked! */
+#divCalculatorPod[data-calcbuddy] button.equals {
+    grid-row: unset;
+}
+
+/* by default, enter-key is invisible... */
+button.buddy {
+    display: none;
+}
+
+/* if there is a buddy, we display the enter-key */
+#divCalculatorPod[data-calcbuddy] button.buddy {
+    display: inline-block;
+}
+
+button.meta {
+    font-weight: bolder;
+    color: var(--calc-button-special-color);
+}
+
+/* ########################################################################################## */
+
+#divCalcSettings {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+    height: 100vh;
+    background: linear-gradient(135deg, var(--bg2), var(--bg1));
+    color: var(--calc-button-text-color);
+    padding: 4.25rem 1rem 1rem;
+}
+
+#h2CalcSettings {
+    font-size: 1.25rem;
+}
+
+#divCalcSettings > .control input[type="range"]:not(.switch) {
+    right: 20%;
+}
+
+#divCalcSettings > .control > .unit {
+    right: 0.5rem;
+}
+
+@media screen and (min-width: 320px) and (max-width: 860px) and (orientation: landscape) {
+    body {
+        align-content: center;
+    }
+    .calculator-pod {
+        transform-origin: center;
+        /* transform: rotate(0deg); */
+        transform: translate(-50%, -50%);
+        width: 100%;
+    }
+
+    button.equals {
+        grid-row: span 2;
+        grid-column: 5/6;
+    }
+}

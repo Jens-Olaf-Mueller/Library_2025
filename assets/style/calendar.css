@@ -1,0 +1,252 @@
+:root {
+    --cal-collapse-duration: 500ms;                  /* beliebig ändern, z.B. 200ms */
+    /*--cal-collapse-ease: cubic-bezier(.25,.8,.25,1); /* smooth ease */
+    /*--cal-collapse-ease: cubic-bezier(.2,.7,.2,1);   /* snappier */
+    --cal-collapse-ease: cubic-bezier(.22,1,.36,1);  /* buttery (ähnlich iOS-Ease-Out) */
+
+    --cal-background-color: #222; /* old: #2e2e47 */
+    --cal-header-color: #323234;  /* old: #444a70*/
+    --cal-footer-color: #323234;  /* old: #444a70*/
+    --cal-highlight-color: #444;  /* old: #444a70*/
+    --cal-text-color: whitesmoke;
+    --cal-sunday-color: tomato;
+    --cal-accent-color: #5166d6;
+}
+
+/* === OUTER GRID CONTAINER === */
+.calendar-pod {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    width: min(90vmin, 28rem);
+    margin: auto;
+    background: var(--cal-background-color, #2e2e47);
+    color: var(--cal-text-color, #f5f5f5);
+    border-radius: 0.3rem;
+    overflow: hidden;
+}
+
+/* === BODY === */
+.calendar-body {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(7, 1fr);
+    aspect-ratio: 8 / 7;
+}
+
+.calendar-collapsible {
+    transition: max-height var(--cal-collapse-duration) var(--cal-collapse-ease);
+    will-change: max-height;
+    overflow: hidden;
+}
+
+/* === TITLE === */
+.calendar-title {
+    grid-column: 1 / -1;
+    display: grid;
+    place-items: center;
+    /* to calculate the vw-value, use: */
+    /* vw = ((max_rem - min_rem) * 16) / (vw_max - vw_min) * 100*/
+    height: clamp(2.25rem, 5vw, 3.5rem);
+    font-weight: bold;
+    padding: 0.3rem 0;
+}
+
+/* === HEADER / FOOTER === */
+.calendar-head,
+.calendar-footer {
+    grid-column: 1 / -1;
+    display: grid;
+    align-items: center;
+    /* vw = ((max_rem - min_rem) * 16) / (vw_max - vw_min) * 100*/
+    height: clamp(2.25rem, 5vw, 3.5rem);
+    grid-template-columns: repeat(8, 1fr);
+    background: var(--cal-header-color, #444a70);
+}
+
+/* === FOOTER === */
+.calendar-footer {
+    grid-template-columns: none;
+    place-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 2rem;
+    background-color: var(--cal-footer-color, #444a70);
+}
+
+.calendar-footer[open] {
+    text-overflow: unset;
+    padding-right: 0;
+}
+
+/* shrink font-sizes */
+.calendar-title h2,
+.calendar-head h2,
+.calendar-footer h2 {
+    /* vw = ((max_rem - min_rem) * 16) / (vw_max - vw_min) * 100*/
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+}
+
+#divMonthPicker,
+#divYearPicker {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    grid-column: 1 / 6; /* = span 5 */
+    padding: 0 0.25rem;
+}
+
+#divYearPicker {
+    grid-column: 6 / -1; /* = span 6 - end */
+}
+
+.calendar-button {
+    height: clamp(1.5rem, 5vw, 2.5rem);
+    aspect-ratio: 1 / 1;
+    color: var(--cal-accent-color, #5166d6);
+    font-size: 1rem;
+    cursor: pointer;
+    background-color: transparent;
+    border: none;
+}
+
+.calendar-button svg {
+    fill: currentColor;
+    transition: transform 120ms ease, fill 120ms ease;
+}
+
+.calendar-button:active svg {
+    transform: scale(0.9);
+    /* fill: var(--cal-highlight-color); */
+    fill: var(--cal-accent-color, #5166d6);
+    filter: brightness(1.5);
+}
+
+
+/* Die Höhe einer .calendar-cell ist jetzt Basis */
+.calendar-cell {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 1.1rem;
+}
+
+.calendar-cell:not([data-week], [data-column]):hover {
+    background-color: var(--cal-footer-color);
+}
+
+.calendar-cell.date-selected {
+    background-color: var(--cal-accent-color, #5166d6);
+    /* color: #fff; */
+}
+
+/* weekdays, saturdays */
+.calendar-cell:nth-child(-n + 8),
+.calendar-cell:nth-child(8n-1) {
+    font-weight: bolder;
+}
+
+/* weeks */
+.calendar-cell:nth-child(8n-7) {
+    font-weight: bold;
+    color: var(--cal-accent-color, #5166d6);
+}
+
+/* sundays, holidays */
+.calendar-cell:nth-child(8n),
+.sunday,
+.holiday {
+    font-weight: bold;
+    color: var(--cal-sunday-color, red);
+}
+
+.current-day {
+    background-color: var(--cal-highlight-color, lightblue);
+    border: 1px solid var(--cal-accent-color, #5166d6);
+    border-radius: 2px;
+}
+
+.calendar-cell span {
+    font-size: smaller;
+    color: green;
+    background-color: lightgreen;
+    width: calc(100% - 6px);
+    text-align: center;
+    border-radius: 2px;
+}
+
+.calendar-cell span.insufficient {
+    color: red;
+    background-color: salmon;
+}
+
+.calendar-cell span.summary {
+    color: navy;
+    background-color: lightblue;
+    font-weight: normal;
+}
+
+[disabled] {
+    color: var(--disabled-color, var(--cal-disabled-color, #aaa)) !important;
+}
+
+/* Container braucht relative Position (haben wir im Pod gesetzt) */
+#divCalendarPod .calendar-drop {
+    position: absolute;
+    /* Responsive Positionierung: min, preferred, max */
+    top: clamp(0.25rem, 0.8vh, 0.6rem);
+    right: clamp(0.25rem, 1vw, 0.6rem);
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    color: whitesmoke;
+}
+
+.calendar-drop {
+    transition: transform 350ms ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.calendar-drop-arrow {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
+    transition: transform 350ms ease;
+}
+
+/* Wenn Kalender offen → SVG drehen */
+.calendar-drop.is-open .calendar-drop-arrow {
+    transform: rotate(180deg) translateY(10%);
+}
+
+.calendar-settings {
+    cursor: pointer;
+    transition: transform 1000ms linear;
+}
+
+.calendar-settings.is-open .calendar-gear {
+    transform: rotate(15deg);
+}
+
+#divCalendarCollapsible {
+    max-height: 0;
+}
+
+.calendar-control {
+    display: flex;
+    align-items: center;
+}
+
+.calendar-control label,
+.calendar-control select
+{
+    min-width: 9.5rem;;
+}

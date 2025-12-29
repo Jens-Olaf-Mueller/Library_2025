@@ -1,0 +1,139 @@
+:root {
+    --wheel-item-height: 1.8rem; /* → NEW value! */
+    --wheel-items-visible: 7;
+    --wheel-bg-color: #e5e0e0;
+    --wheel-text-color: #1a1a1a;
+    --wheel-gradient-dark: #d5d0d0;
+    --wheel-gradient-light: #efefef;
+    --wheel-accent-color: #5166d6;
+    --wheel-selection-bg-color: rgba(0,0,0,0.1);
+}
+
+/* Container that holds all wheel columns (divWheelTrack) */
+.wheel-track {
+    position: relative;
+    display: flex;
+    gap: 0.25rem;
+    align-items: stretch;
+    justify-content: center;
+    padding: 0.25rem 0;
+}
+
+/* Single wheel column */
+.wheel-column {
+    position: relative;
+    flex: 1 1 0;
+    max-width: 7rem;
+    height: calc(var(--wheel-item-height) * var(--wheel-items-visible, 7));
+    overflow-y: scroll;
+    scrollbar-width: none;              /* Firefox */
+    -webkit-overflow-scrolling: touch;  /* iOS */
+
+    /* 3D-Perspektive für die Items */
+    perspective: 475px;
+    perspective-origin: center center;
+
+    background: linear-gradient(to bottom,
+        var(--wheel-gradient-dark, #1f1f1f)  0%,
+        var(--wheel-gradient-light,#212121) 50%,
+        var(--wheel-gradient-dark, #1f1f1f) 100%);
+    box-shadow: 2px 4px 5px silver;
+}
+
+/* Scrollbars verstecken (WebKit) */
+.wheel-column::-webkit-scrollbar {
+    display: none;
+}
+
+
+.wheel-column:has(ul[role="day"]) {
+    flex: 1 1 0;
+    max-width: unset;
+}
+
+.wheel-column:has(ul[role="month"]) {
+    flex: 3 1 0;
+    max-width: unset;
+}
+
+.wheel-column:has(ul[role="year"]) {
+    flex: 2 1 0;
+    max-width: unset;
+}
+
+/* Liste in der Walze */
+.wheel-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    transform-style: preserve-3d;
+}
+
+/* Einzelner Listeneintrag = ein Wert auf der Walze (Basisstil) */
+.wheel-item {
+    height: var(--wheel-item-height, 1.8rem);
+    line-height: var(--wheel-item-height, 1.8rem);
+    text-align: center;
+    white-space: nowrap;
+
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+    box-sizing: border-box;
+    padding: 0 0.25rem;
+
+    /* Drehachse: Mittelpunkt + fester Z-Offset */
+    transform-origin: center center 112px; /* → NEW value! */
+    opacity: 0.35;
+
+    /* weiche Bewegung beim Umschalten der 3D-Values */
+    transition: transform 75ms ease-out, opacity 75ms ease-out;  /* leads to "bounce"-effect! */
+    backface-visibility: hidden;
+}
+
+
+/* Visuell aktiver Wert (im Auswahlfenster) */
+.wheel-item--active {
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--wheel-accent-color, '#5166d6');
+    /* text-shadow: 1px 1px #1a1e41; */
+    opacity: 1;
+}
+
+.wheel-item[disabled] {
+    color: transparent !important;
+}
+
+/* ========================================= */
+/* Footer / Buttons – unverändert lassen     */
+/* ========================================= */
+
+.wheel-btn {
+    min-width: 4rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.06);
+    color: whitesmoke;
+}
+
+.wheel-btn-close {
+    position: absolute;
+    right: 0.75rem;
+    border: none;
+    width: 1.25rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background-color: transparent;
+    color: whitesmoke;
+}
+
+.wheel-btn--ok {
+    background: #2ecc71;
+    border-color: #27ae60;
+}

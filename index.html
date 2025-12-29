@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+    <!-- Set theme to "dark" for dark mode -->
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
+
+        <title>Class Library V2.0 Demo</title>
+
+        <link rel="stylesheet" href="./assets/style/style.css" />
+
+        <script defer src="./js/components/ComboBox.js" type="module"></script>
+        <script defer src="./js/app.js" type="module"></script>
+    </head>
+    <body id="demoBody">
+        <!-- <combo-box id="cboLibraryDemo" options="ColorHandler, MessageBox, Timer"></combo-box> -->
+        <form id="frmDemo">
+            <div class="control">
+                <label for="inpBuddy">Ankunft </label>
+                <input id="inpBuddy" type="text" role="wheel" readonly   data-wrap="true"
+                    min="7"
+                    max="12"
+                    value="07:15"
+                    step="1"
+                />
+            </div>
+            <label>
+                Stunden
+                <input id="inpArrival" type="text" role="wheel" readonly data-mode="hours" data-wrap="true"
+                    min="0"
+                    max="12"
+                    step="30"
+                    value="8"
+                />
+            </label>
+
+            <label>
+                Datum
+                <input id="inpDate" type="text" role="wheel" readonly data-mode="date" data-wrap="true"
+                    value="29.4.2019"
+                />
+            </label>
+
+            <label>
+                Spinner
+                <input id="inpSpin1" type="text" role="wheel" readonly data-mode="spin" data-wrap="true"
+                    min="0"
+                    max="50"
+                    value="15"
+                />
+            </label>
+
+            <label>
+                Custom Picker
+                <input id="inpSpin4" type="text" role="wheel" readonly data-mode="custom" data-wrap="true"
+                    data-source="Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag"
+                    value="Sonntag"
+                />
+            </label>
+
+            <label>
+                Custom Picker 2
+                <input id="inpSpin5" type="text" role="wheel" readonly data-mode="custom" data-wrap="true" style="min-width: 10rem;"/>
+            </label>
+
+        </form>
+    </body>
+    <script>
+        function log(expression) {  console.log(expression); }
+    </script>
+</html>
