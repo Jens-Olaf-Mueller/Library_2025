@@ -11,11 +11,12 @@
 
 
 ## Brief
-  This library provides a bunch of classes and utility function.
+  This library provides a bunch of classes and utility functions.
 
 
 ## Features
-  * Library base class contains the folowing features:
+  ### Classes:
+  * Library base class contains the following features:
     - properties        → public getter: returns readable/writable property names (optionally includes read-only getters)
 
     - isClassInstance   → public method: checks whether a passed expression is an instance of a class or not
@@ -32,8 +33,25 @@
 
     - #setElement:      → private method: resolves a DOM reference from an HTMLElement or an ID string
 
-  * ...
-  * ...
+
+  * Calculator          → A self-contained, UI-integrated calculator widget with persistent settings
+                          and clean lifecycle handling. Supports an HTML input element as correspondingg control (buddy).
+  * Parser              → Parses math epressions. Helper class for calculator. Can also used as "standalone" component.
+  * Calendar            → Calendar control that supports HTML form elements.
+                          Knows ALL holidays in Germany, Austria and Switzerland,
+  * ColorHandler        → Utility class to convert different color formats. Supports CSS color names.
+  * Haptic              → Simple haptic class.
+  * MessageBox          → Universal  dialog class.
+  * WheelPicker         → Renders a modal/overlay picker for a single input element and manages
+                          one or more `Wheel` instances depending on the selected mode.
+  * ListGenerator       → Base class for Wheel.
+  * Wheel               → Scroll unit for the WheelPicker component.
+
+  ### Components
+
+  ### Utils
+
+  ### Dependencies
 
 
 ## How to use
