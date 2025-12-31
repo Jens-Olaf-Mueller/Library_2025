@@ -2,7 +2,6 @@ import $, { format$ } from '../utils.js';
 import { OBJ_COMPONENTS } from '../constants.js';
 
 /**
- * ===============================================================
  * Library — Universal base class for UI components
  * ===============================================================
  *
@@ -27,26 +26,28 @@ import { OBJ_COMPONENTS } from '../constants.js';
  * ---------------------------------------------------------------
  * I. Public Methods
  * ---------------------------------------------------------------
- * properties:           - returns readable/writable property names (optionally includes read-only getters)
- * isClassInstance:      - checks whether a value is a class instance (not a plain object)
- * arrayIsTypeOf:        - checks whether an array contains only a specific primitive/object type
- * toBoolean:            - coerces heterogeneous truthy values into a boolean
- * stringTo:             - converts a string to camel/kebab/snake/caps/camel-dash or parses to an object
- * createElement:        - creates/updates an element from an attribute map (props, attrs, events, booleans)
- * setCSSProperty:       - sets a CSS custom property on :root or an element
- * getCSSProperty:       - reads a CSS custom property from :root or an element
- * renderUI:             - builds and appends the component DOM tree from `OBJ_COMPONENTS` (recursive builder)
+ *
+ * - {@link properties}           - returns readable/writable property names (optionally includes read-only getters)
+ *
+ * - {@link isClassInstance}      - checks whether a value is a class instance (not a plain object)
+ * - {@link arrayIsTypeOf}        - checks whether an array contains only a specific primitive/object type
+ * - {@link toBoolean}            - coerces heterogeneous truthy values into a boolean
+ * - {@link stringTo}             - converts a string to camel/kebab/snake/caps/camel-dash or parses to an object
+ * - {@link createElement}        - creates/updates an element from an attribute map (props, attrs, events, booleans)
+ * - {@link setCSSProperty}       - sets a CSS custom property on :root or an element
+ * - {@link getCSSProperty}       - reads a CSS custom property from :root or an element
+ * - {@link renderUI}             - builds and appends the component DOM tree from `OBJ_COMPONENTS` (recursive builder)
  *
  * ---------------------------------------------------------------
  * II. Protected / Internal Methods
  * ---------------------------------------------------------------
- * _raiseEvent:          - dispatches a CustomEvent from element/parent/document with `detail`
- * _injectCSS:           - injects component CSS variables and applies protected inline defaults
+ * - {@link _raiseEvent}          - dispatches a CustomEvent from element/parent/document with `detail`
+ * - {@link _injectCSS}           - injects component CSS variables and applies protected inline defaults
  *
  * ---------------------------------------------------------------
  * III. Private Methods
  * ---------------------------------------------------------------
- * #setElement:          - resolves a DOM reference from an HTMLElement or an ID string
+ * - {@link #setElement()}          - resolves a DOM reference from an HTMLElement or an ID string
  */
 export default class Library {
 

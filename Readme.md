@@ -54,6 +54,7 @@
   ### Dependencies
     - `OBJ_COMPONENTS`      → Object. Used in `WheelPicker` class.
                             Holds built information about UI classes: Calculator, Calendar, WheelPicker
+
     - `CSS_COLORS`          → Object. Used in `ColorHandler` class. Contains all CSS color names and it's hex values.
 
 
