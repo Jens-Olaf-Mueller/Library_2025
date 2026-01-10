@@ -35,3 +35,8 @@ label:has(input[role="wheel"]) {
 label:has(input[role="wheel"]) input[role="wheel"] {
     margin-left: 3rem;
 }
+
+video {
+    border: 1px solid silver;
+    background-color: black;
+}

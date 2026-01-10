@@ -14,12 +14,29 @@ const OVERLAY_ID = 'msg-BoxOverlay',
       CLOSE_ID = 'msg-btn-close',
       Z_INDEX_TOP = 2147483647;
 
+      // - {@link }
+
 /**
- * @classdesc
- * Provides an interactive, configurable message dialog.
+ * MessageBox - Provides an interactive, configurable message dialog
+ * =================================================================
  * Can be displayed modal or non-modal.
  * Supports keyboard navigation, accessibility attributes, auto-close timers, and optional fade animations.
- * Compatible with both PWA and standalone environments.
+ *
+ * ---------------------------------------------------------------
+ * I. Public Methods
+ * ---------------------------------------------------------------
+ * - async {@link show}       - displays the defined dialog according to the passed parameters
+ * - {@link reset}            - resets all settings
+ *
+ * ---------------------------------------------------------------
+ * II. Properties
+ * ---------------------------------------------------------------
+ *
+ * - modal
+ * - closeButton
+ * - caseSensitive
+ * - adjustContrast
+ * - fade
  */
 
 export class MessageBox extends Library {

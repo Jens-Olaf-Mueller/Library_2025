@@ -5,8 +5,8 @@ import { Wheel } from './Wheel.js';
 import { NOT_FOUND } from '../constants.js';
 
 /**
- * ==============================================================================
- * WheelPicker — Wheel-based picker overlay (time / hours / spin / date / custom)
+ * WheelPicker — Wheel-based picker overlay
+ * modes: time / hours / spin / date / custom
  * ==============================================================================
  *
  * Renders a modal/overlay picker for a single input element and manages
@@ -23,10 +23,10 @@ import { NOT_FOUND } from '../constants.js';
  * ---------------------------------------------------------------
  * I. Public Methods
  * ---------------------------------------------------------------
- * show:                - renders the overlay UI, initializes wheels, and shows the component
- * hide:                - closes the overlay; optionally applies value; fires `input` or `cancel`
- * initWheels:          - creates and initializes Wheel instances for the current mode (returns success boolean)
- * onPointerDown:       - handles overlay button actions (OK / Cancel) and closes accordingly
+ * {@link show}                - renders the overlay UI, initializes wheels, and shows the component
+ * {@link hide}                - closes the overlay; optionally applies value; fires `input` or `cancel`
+ * {@link initWheels}          - creates and initializes Wheel instances for the current mode (returns success boolean)
+ * {@link onPointerDown}       - handles overlay button actions (OK / Cancel) and closes accordingly
  *
  * ---------------------------------------------------------------
  * II. Private Methods

@@ -2,7 +2,6 @@ import { ListGenerator } from './ListGenerator.js';
 import { NOT_FOUND } from '../constants.js';
 
 /**
- * ===============================================================
  * Wheel — Scrollable wheel column with snap + 3D visual effect
  * ===============================================================
  *
@@ -23,12 +22,12 @@ import { NOT_FOUND } from '../constants.js';
  * ---------------------------------------------------------------
  * I. Public Methods
  * ---------------------------------------------------------------
- * snapToValue:         - programmatically scrolls/snaps to a given logical value
+ * - {@link snapToValue}         - programmatically scrolls/snaps to a given logical value
  *
  * ---------------------------------------------------------------
  * II. Private Methods
  * ---------------------------------------------------------------
- * #init:               - initializes wheel state, renders items, measures layout, attaches events, sets initial position
+ * {@link #init}               - initializes wheel state, renders items, measures layout, attaches events, sets initial position
  * #cloneItems:         - creates the virtual item set (wrap clones or finite dummies) and replaces list DOM
  * #measure:            - measures item height, visible row count, center offset, and block size for recentering
  * #attachEvents:       - attaches scroll and click event handlers to column/list

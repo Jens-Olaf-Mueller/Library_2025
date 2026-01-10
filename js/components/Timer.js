@@ -50,7 +50,7 @@ const EVT_EXPIRED = 'timerexpired';
  * @property {number} elapsed				- Milliseconds since the timer (clock) was started.
  * @property {string} countdown				- Remaining countdown time formatted `hh:mm:ss`.
  * @property {number} [remaining]			- Remaining seconds (only on {@link EVT_COUNTDOWN}).
- * @property {string} [alertAt]			- Formatted alert time when {@link EVT_EXPIRED} fires.
+ * @property {string} [alertAt]			    - Formatted alert time when {@link EVT_EXPIRED} fires.
  */
 
 class Timer extends HTMLElement {

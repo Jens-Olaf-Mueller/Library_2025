@@ -4,6 +4,8 @@ import { ColorHandler } from './classes/ColorHandler.js';
 import { Calendar } from './classes/Calendar.js';
 import { Calculator } from './classes/Calculator.js';
 import { WheelPicker } from './classes/WheelPicker30.js';
+import { LoadManager } from './classes/LoadManager.js';
+// import { AssetScanner } from './classes/AssetScanner.js';
 
 import $, {format$} from './utils.js';
 
@@ -25,6 +27,33 @@ msgbox.includeReadOnlyProperties = true;
 const body = document.getElementById('demoBody');
 const colors = new ColorHandler(body);
 const lib = new Library();
+
+
+document.addEventListener('DOMContentLoaded', run);
+
+// Angenommen, du hast ein <progress id="prgBar" max="100" value="0"></progress>
+const pbar = $('prgBar');
+const spnPercent = $('spnPercent');
+
+window.addEventListener('loadprogress', (e) => {
+    pbar.value = e.detail.percent;
+    // pbar.parentElement.innerText = `Loading ${e.detail.key}...`;
+    spnPercent.innerText= `${e.detail.percent.toFixed(0)}%`;
+});
+
+window.addEventListener('loadcomplete', (e) => {
+    pbar.value = 100;
+    console.log("Fertig! Gesamte Bytes:", e.detail.totalBytes);
+});
+
+const loader = new LoadManager();
+
+async function run() {
+    await loader.loadAll('/Library_2025/assets/assets.json');
+}
+
+// const scanner = new AssetScanner();
+
 
 // const combo = document.getElementById('cboLibraryDemo');
 // console.log('=================================================================')

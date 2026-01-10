@@ -12,7 +12,7 @@
         <script defer src="./js/components/ComboBox.js" type="module"></script>
         <script defer src="./js/app.js" type="module"></script>
     </head>
-    <body id="demoBody">
+    <body id="demoBody" data-asset="/Library_2025/assets/images/IMG_8889.jpg">
         <!-- <combo-box id="cboLibraryDemo" options="ColorHandler, MessageBox, Timer"></combo-box> -->
         <form id="frmDemo">
             <div class="control">
@@ -63,7 +63,22 @@
                 <input id="inpSpin5" type="text" role="wheel" readonly data-mode="custom" data-wrap="true" style="min-width: 10rem;"/>
             </label>
 
+            <label for="prgBar">
+                Loading...
+                <progress id="prgBar" min="0" max="100" value="0"></progress>
+                <span id="spnPercent"> %</span>
+            </label>
+
+
         </form>
+
+        <div style="width: 100vw; padding: 0 1rem;">
+            <video data-asset="/Library_2025/assets/images/Elaine.mp4" controls width="480" height="360"></video>
+        </div>
+
+        <img data-asset="/Library_2025/assets/images/IMG_8887.jpg" alt="Tenerife" width="480" height="360">
+        <audio data-asset="/Library_2025/assets/images/Pachabel.mp3" controls></audio>
+
     </body>
     <script>
         function log(expression) {  console.log(expression); }

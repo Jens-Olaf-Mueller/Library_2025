@@ -36,32 +36,37 @@
 
   * `Calculator`            → A self-contained, UI-integrated calculator widget with persistent settings
                             and clean lifecycle handling. Supports an HTML input element as correspondingg control (buddy).
-  * `Parser`                → Parses math epressions. Helper class for calculator. Can also used as "standalone" component.
+  * `Parser`                → Parses math expressions. Helper class for calculator. Can also used as "standalone" component.
   * `Calendar`              → Calendar control that supports HTML form elements.
                             Knows ALL holidays in Germany, Austria and Switzerland,
   * `ColorHandler`          → Utility class to convert different color formats. Supports CSS color names.
   * `Haptic`                → Simple haptic class.
-  * `MessageBox`            → Universal  dialog class.
+  * `MessageBox`            → Universal customizable dialog class.
   * `WheelPicker`           → Renders a modal/overlay picker for a single input element and manages
                             one or more `Wheel` instances depending on the selected mode.
   * `ListGenerator`         → Base class for Wheel.
   * `Wheel`                 → Scroll unit for the WheelPicker component.
 
   ### Components
+  * `ComboBox`              →
+  * `Timer`                 →
 
   ### Utils
+  * `$`                     → Universal Selector function. Supports all CSS selectors. Returns a single element, a nodelist or an array if needed
+  * `addGlobalEventListeners` → adds global event listeners to specific elements by CSS selectors and event delegation
+  * `format$`               → formats an expression according to the passed pattern
+  * `includeHTML`           → async function that loads HTML markup into elements with the `"w3-include-html"` attribute
 
   ### Dependencies
-    - `OBJ_COMPONENTS`      → Object. Used in `WheelPicker` class.
+    - `OBJ_COMPONENTS`      → Object. Used in [WheelPicker](#WheelPicker) class.
                             Holds built information about UI classes: Calculator, Calendar, WheelPicker
-
     - `CSS_COLORS`          → Object. Used in `ColorHandler` class. Contains all CSS color names and it's hex values.
 
 
 ## How to use
   Simply copy the link and open the page in your browser.
 
-  [https://link](#linktext)
+  [https://link-will-be-added-later](#linktext)
 
   Then following these steps...
 

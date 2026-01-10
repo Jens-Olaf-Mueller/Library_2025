@@ -1,6 +1,13 @@
 /**
  * Safe mathematical expression parser using Shunting-Yard algorithm.
+ * ==================================================================
  * Supports +, -, ×, ÷, %, parentheses and unary minus.
+ *
+ * ------------------------------------------------------------------
+ * I. Public Methods
+ * ------------------------------------------------------------------
+ * - {@link parse}
+ *
  */
 export class Parser {
     /**

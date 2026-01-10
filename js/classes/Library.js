@@ -201,7 +201,6 @@ export default class Library {
             composed: true
         });
         const target = this.#element || this.#parent || document;
-        // console.log(event)
         return target.dispatchEvent(event);
     }
 
