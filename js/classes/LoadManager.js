@@ -6,28 +6,32 @@ import Library from './Library.js';
  * ==========================================================
  * This class extends the Library to provide a professional loading system.
  * It uses the Streams API to track the download progress of binary assets.
- * * * Features:
+ * * Features:
+ * - Manifest Support: Integrates with AssetScanner's assets.json.
+ * - Selective Loading: Toggle tracking for scripts, styles, and markup.
  * - Hybrid Loading: Supports DOM-based scanning and manual task registration.
- * - Global Cache: Stores processed assets for easy retrieval (ideal for games).
- * - Real-time progress calculation for deterministic and estimated file sizes.
- * - Automatic injection into DOM or CSS backgrounds.
- * * * Public Methods:
- * - {@link initFromDOM}      - Scans a container for assets.
- * - {@link registerTask}     - Manually registers a new load task.
- * - {@link addTasks}         - Registers a list of dynamic assets.
- * - {@link getAsset}         - Retrieves a loaded asset from the cache.
- * - {@link loadAsset}        - Fetches a single asset and tracks its stream.
- * - {@link loadAll}          - Executes all registered tasks in parallel.
- * * @version 1.1.0
+ * - Global Cache: Stores processed assets for easy retrieval.
+ * - CSS Integration: Sets images as CSS variables for container backgrounds.
+ * * @version 1.2.0
  * @extends Library
  */
 export class LoadManager extends Library {
     /**
-     * @param {HTMLElement|string|null} [parent=null] - The search area for assets.
-     * @param {boolean} [autoInit=true] - If true, scans the DOM immediately.
+     * @param {object} [config={}] - Configuration for the manager.
+     * @param {boolean} [config.autoInit=true] - If true, scans the DOM immediately.
+     * @param {boolean} [config.ignoreHTML=true] - Skip markup files in progress.
+     * @param {boolean} [config.ignoreStyles=true] - Skip CSS files in progress.
+     * @param {boolean} [config.ignoreScripts=true] - Skip JS files in progress.
+     * @param {boolean} [config.ignoreText=true] - Skip text/md files in progress.
      */
-    constructor(parent = null, autoInit = true) {
-        super(parent);
+    constructor(config = {}) {
+        super(config.parent || null);
+
+        // Configuration Flags
+        this.ignoreHTML = config.ignoreHTML ?? true;
+        this.ignoreStyles = config.ignoreStyles ?? true;
+        this.ignoreScripts = config.ignoreScripts ?? true;
+        this.ignoreText = config.ignoreText ?? true;
 
         /** @type {Map<string, object>} Task registry for progress tracking */
         this.tasks = new Map();
@@ -38,15 +42,16 @@ export class LoadManager extends Library {
         this.totalLoadedBytes = 0;
         this.defaultWeight = 512000;
 
-        if (autoInit) this.initFromDOM();
-        console.log(this)
+        if (config.autoInit !== false) this.initFromDOM();
     }
 
     /**
-     * Scans for [data-asset], generates keys if missing, and registers tasks.
+     * Scans the entire document for [data-asset] attributes.
      */
-    initFromDOM(container = document) {
+    initFromDOM() {
+        // Search the whole document as requested
         const elements = $('[data-asset]', true);
+
         elements.forEach(el => {
             const url = el.dataset.asset;
             let key = el.id;
@@ -67,10 +72,10 @@ export class LoadManager extends Library {
 
     /**
      * Registers a resource in the manager.
-     * @param {string} key - Unique identifier for the task.
-     * @param {number|null} size - Size in bytes (if known).
      */
     registerTask(key, size = null) {
+        if (this.tasks.has(key)) return;
+
         const isIndeterministic = (size === null || size <= 0);
         const weight = isIndeterministic ? this.defaultWeight : size;
 
@@ -78,39 +83,23 @@ export class LoadManager extends Library {
             loaded: 0,
             expected: weight,
             isIndeterministic,
-            isDone: false
+            isDone: false,
+            url: null,
+            type: null
         });
 
         this.totalExpectedBytes += weight;
     }
 
     /**
-     * Manually registers a list of assets for dynamic loading.
-     * @param {Array<object>} assetList - Array of {key, url, type} objects.
-     */
-    addTasks(assetList) {
-        assetList.forEach(asset => {
-            const key = asset.key || asset.id; // Support both naming styles
-            this.registerTask(key, null);
-            const task = this.tasks.get(key);
-            task.url = asset.url;
-            task.type = asset.type || 'image';
-        });
-    }
-
-    /**
-     * Returns a loaded asset from the cache.
-     * @param {string} key
-     * @returns {any|null}
+     * Retrieves a loaded asset from the cache.
      */
     getAsset(key) {
         return this.cache.get(key) || null;
     }
 
     /**
-     * Injects the processed asset into its corresponding DOM element.
-     * @param {string} key - The asset key.
-     * @param {any} processedData - The media object or URL.
+     * Injects the processed asset into its corresponding DOM element or CSS variable.
      * @private
      */
     #applyAsset(key, processedData) {
@@ -120,16 +109,18 @@ export class LoadManager extends Library {
         const url = (processedData instanceof HTMLImageElement || processedData instanceof HTMLAudioElement)
             ? processedData.src : processedData;
 
+        // 1. Handle native media elements
         if (element instanceof HTMLImageElement || element instanceof HTMLMediaElement) {
             element.src = url;
-        } else {
-            // Wir nutzen eine CSS-Variable für das Hintergrundbild
-            // Das erlaubt dir, im CSS einfach zu schreiben: background-image: var(--bg-image);
+        }
+        // 2. Handle background containers via CSS Variables
+        else {
             const varName = `--asset-${this.stringTo(key, 'kebab')}`;
-            this.setCSSProperty(varName, `url("${url}")`);
 
-            // Fallback/Direktzuweisung, falls kein CSS-Var-Setup im Stylesheet existiert
-            // element.style.backgroundImage = `url("${url}")`;
+            // Set the variable via Library method
+            this.setCSSProperty(varName, `url("${url}")`, element);
+
+            // Apply variable to background as a default behavior
             element.style.backgroundImage = `var(${varName})`;
             element.style.backgroundSize = 'cover';
             element.style.backgroundPosition = 'center';
@@ -191,21 +182,17 @@ export class LoadManager extends Library {
 
     /**
      * Fetches a resource and tracks progress.
-     * @param {string} url - Asset URL.
-     * @param {string} key - Unique key.
-     * @returns {Promise<Blob>}
      */
     async loadAsset(url, key) {
+        console.log(url)
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
         const contentLength = response.headers.get('content-length');
         const total = contentLength ? parseInt(contentLength, 10) : null;
 
-        if (!this.tasks.has(key)) {
-            this.registerTask(key, total);
-        } else if (total) {
-            const task = this.tasks.get(key);
+        const task = this.tasks.get(key);
+        if (task && total) {
             this.totalExpectedBytes += (total - task.expected);
             task.expected = total;
             task.isIndeterministic = false;
@@ -228,29 +215,59 @@ export class LoadManager extends Library {
     }
 
     /**
-     * Executes all registered tasks in parallel.
-     * @param {string|null} [manifestUrl=null] - Optional path to a manifest.json
+     * Executes all registered tasks in parallel, optionally loading a manifest.
+     * Automatically resolves paths using the library's projectFolder.
+     * @param {string|null} [manifestUrl=null] - Path to the assets.json
      */
     async loadAll(manifestUrl = null) {
-        // 1. Zuerst schauen wir, ob ein Manifest-Ordner geladen werden soll
+        // Use the inherited getter from Library
+        const base = this.projectFolder;
+
         if (manifestUrl) {
             try {
-                const response = await fetch(manifestUrl);
-                if (!response.ok) throw new Error(`Manifest not found at ${manifestUrl}`);
+                // Ensure manifestUrl itself is correctly pointed
+                const finalManifestUrl = manifestUrl.startsWith('/')
+                    ? (manifestUrl.startsWith(base) ? manifestUrl : base + manifestUrl.substring(1))
+                    : manifestUrl;
+
+                const response = await fetch(finalManifestUrl);
+                if (!response.ok) throw new Error(`Manifest not found at ${finalManifestUrl}`);
 
                 const autoAssets = await response.json();
 
                 autoAssets.forEach(asset => {
-                    // Erzeuge Key aus Dateiname (z.B. "hero.png" -> "hero")
+                    // 1. Filter checks
+                    if (this.ignoreHTML && asset.type === 'markup') return;
+                    if (this.ignoreStyles && asset.type === 'style') return;
+                    if (this.ignoreScripts && asset.type === 'script') return;
+                    if (this.ignoreText && asset.type === 'text') return;
+
+                    // 2. Key generation
                     const fileName = asset.url.split('/').pop().split('.').shift();
                     const key = this.stringTo(fileName, 'camel');
 
-                    // Nur registrieren, wenn der Key noch nicht existiert (verhindert Dubletten vom DOM)
+                    // 3. Register or update task
                     if (!this.tasks.has(key)) {
                         this.registerTask(key, asset.size);
-                        const task = this.tasks.get(key);
-                        task.url = asset.url;
-                        task.type = asset.type;
+                    }
+
+                    const task = this.tasks.get(key);
+
+                    // Smart URL reconstruction:
+                    // If JSON says "/assets/..." and project is "/Library_2025/"
+                    // we want "/Library_2025/assets/..."
+                    let finalUrl = asset.url;
+                    if (finalUrl.startsWith('/') && !finalUrl.startsWith(base)) {
+                        finalUrl = base + finalUrl.substring(1);
+                    }
+
+                    task.url = finalUrl;
+                    task.type = asset.type;
+
+                    if (asset.size && task.isIndeterministic) {
+                        this.totalExpectedBytes += (asset.size - task.expected);
+                        task.expected = asset.size;
+                        task.isIndeterministic = false;
                     }
                 });
             } catch (e) {
@@ -268,33 +285,26 @@ export class LoadManager extends Library {
             const loadPromises = keys.map(async (key) => {
                 const task = this.tasks.get(key);
                 const element = this.DOM[key];
-
-                // URL finden: Entweder aus Task (Manifest/addTasks) oder aus dem DOM-Attribut
                 const url = task.url || element?.dataset.asset;
-                if (!url) return;
 
-                // Typ bestimmen
+                if (!url) {
+                    this.#finishTask(key);
+                    return;
+                }
+
                 let type = task.type;
                 if (!type) {
-                    if (element) {
-                        const tag = element.tagName.toLowerCase();
-                        type = tag === 'img' ? 'image' : (['audio', 'video'].includes(tag) ? tag : 'blob');
-                    } else {
-                        // Fallback für Ordner-Assets ohne Element: Typ anhand der Endung raten
-                        const ext = url.split('.').pop().toLowerCase();
-                        const map = { jpg:'image', png:'image', webp:'image', mp3:'audio', mp4:'video', json:'json' };
-                        type = map[ext] || 'blob';
-                    }
+                    const ext = url.split('.').pop().toLowerCase();
+                    const map = { jpg:'image', png:'image', webp:'image', mp3:'audio', mp4:'video', json:'json', css:'style', js:'script' };
+                    type = map[ext] || 'blob';
                 }
 
                 const blob = await this.loadAsset(url, key);
                 const processedData = await this.processBlob(blob, type);
 
-                // In den Cache legen
                 this.cache.set(key, processedData);
 
-                // Ins DOM injizieren, falls ein Element dazu existiert
-                if (element) {
+                if (element && ['image', 'video', 'audio', 'style'].includes(type)) {
                     this.#applyAsset(key, processedData);
                 }
             });
@@ -306,8 +316,9 @@ export class LoadManager extends Library {
         }
     }
 
+
     /**
-     * Processes blobs into media objects.
+     * Processes blobs into usable media objects or raw data.
      */
     async processBlob(blob, type) {
         const url = URL.createObjectURL(blob);
@@ -325,8 +336,14 @@ export class LoadManager extends Library {
                 audio.src = url;
                 return audio;
             case 'json':
-                const text = await blob.text();
-                return JSON.parse(text);
+                const jsonText = await blob.text();
+                return JSON.parse(jsonText);
+            case 'style':
+            case 'script':
+            case 'markup':
+            case 'text':
+                // Return text content for potential manual injection
+                return await blob.text();
             default:
                 return url;
         }

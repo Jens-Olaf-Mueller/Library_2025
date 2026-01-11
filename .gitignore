@@ -1,2 +1,5 @@
 /assets/images
 .DS_Store
+scan.mjs
+_AssetScanner.mjs
+_LoadManager.js

@@ -122,6 +122,16 @@ export default class Library {
         }
     }
 
+    /**
+     * Returns the current project folder path.
+     * Example: "/Library_2025/"
+     * @returns {string}
+     */
+    get projectFolder() {
+        const path = window.location.pathname;
+        return path.substring(0, path.lastIndexOf('/') + 1);
+    }
+
 
     #visible = false;
     /**

@@ -1,176 +1,176 @@
 [
     {
-        "url": "Readme.md",
-        "size": 3981,
-        "type": "text"
-    },
-    {
-        "url": "assets/images/Elaine.mp4",
+        "url": "/assets/images/Elaine.mp4",
         "size": 11963102,
         "type": "video"
     },
     {
-        "url": "assets/images/IMG_8887.jpg",
+        "url": "/assets/images/IMG_8887.jpg",
         "size": 2539483,
         "type": "image"
     },
     {
-        "url": "assets/images/IMG_8889.jpg",
+        "url": "/assets/images/IMG_8889.jpg",
         "size": 2710443,
         "type": "image"
     },
     {
-        "url": "assets/images/Pachabel.mp3",
+        "url": "/assets/images/Pachabel.mp3",
         "size": 28954713,
         "type": "audio"
     },
     {
-        "url": "assets/images/icons/gear.png",
+        "url": "/assets/images/icons/gear.png",
         "size": 37234,
         "type": "image"
     },
     {
-        "url": "assets/images/icons/home.png",
+        "url": "/assets/images/icons/home.png",
         "size": 6259,
         "type": "image"
     },
     {
-        "url": "assets/style/calculator.css",
+        "url": "/assets/style/calculator.css",
         "size": 5426,
         "type": "style"
     },
     {
-        "url": "assets/style/calendar.css",
+        "url": "/assets/style/calendar.css",
         "size": 5831,
         "type": "style"
     },
     {
-        "url": "assets/style/msgbox.css",
+        "url": "/assets/style/msgbox.css",
         "size": 3639,
         "type": "style"
     },
     {
-        "url": "assets/style/reset.css",
+        "url": "/assets/style/reset.css",
         "size": 974,
         "type": "style"
     },
     {
-        "url": "assets/style/style.css",
+        "url": "/assets/style/style.css",
         "size": 697,
         "type": "style"
     },
     {
-        "url": "assets/style/wheelpicker.css",
+        "url": "/assets/style/wheelpicker.css",
         "size": 3338,
         "type": "style"
     },
     {
-        "url": "index.html",
+        "url": "/index.html",
         "size": 3149,
         "type": "markup"
     },
     {
-        "url": "js/app.js",
-        "size": 3432,
+        "url": "/js/app.js",
+        "size": 3411,
         "type": "script"
     },
     {
-        "url": "js/classes/AssetScanner.mjs",
-        "size": 3986,
+        "url": "/js/classes/AssetScanner.mjs",
+        "size": 4674,
         "type": "script"
     },
     {
-        "url": "js/classes/Calculator.js",
+        "url": "/js/classes/Calculator.js",
         "size": 24405,
         "type": "script"
     },
     {
-        "url": "js/classes/Calendar.js",
+        "url": "/js/classes/Calendar.js",
         "size": 16351,
         "type": "script"
     },
     {
-        "url": "js/classes/ColorHandler.js",
+        "url": "/js/classes/ColorHandler.js",
         "size": 10893,
         "type": "script"
     },
     {
-        "url": "js/classes/Haptic.js",
+        "url": "/js/classes/Haptic.js",
         "size": 7841,
         "type": "script"
     },
     {
-        "url": "js/classes/Library.js",
+        "url": "/js/classes/Library.js",
         "size": 31062,
         "type": "script"
     },
     {
-        "url": "js/classes/ListGenerator.js",
+        "url": "/js/classes/ListGenerator.js",
         "size": 13938,
         "type": "script"
     },
     {
-        "url": "js/classes/LoadManager.js",
-        "size": 11873,
+        "url": "/js/classes/LoadManager.js",
+        "size": 14705,
         "type": "script"
     },
     {
-        "url": "js/classes/MessageBox.js",
+        "url": "/js/classes/MessageBox.js",
         "size": 15614,
         "type": "script"
     },
     {
-        "url": "js/classes/Parser.js",
+        "url": "/js/classes/Parser.js",
         "size": 8136,
         "type": "script"
     },
     {
-        "url": "js/classes/Wheel.js",
+        "url": "/js/classes/Wheel.js",
         "size": 17065,
         "type": "script"
     },
     {
-        "url": "js/classes/WheelPicker30.js",
+        "url": "/js/classes/WheelPicker30.js",
         "size": 28752,
         "type": "script"
     },
     {
-        "url": "js/components/ComboBox.js",
+        "url": "/js/classes/_AssetScanner.mjs",
+        "size": 3986,
+        "type": "script"
+    },
+    {
+        "url": "/js/classes/_LoadManager.js",
+        "size": 11825,
+        "type": "script"
+    },
+    {
+        "url": "/js/components/ComboBox.js",
         "size": 47037,
         "type": "script"
     },
     {
-        "url": "js/components/Timer.js",
+        "url": "/js/components/Timer.js",
         "size": 26325,
         "type": "script"
     },
     {
-        "url": "js/constants.js",
+        "url": "/js/constants.js",
         "size": 29626,
         "type": "script"
     },
     {
-        "url": "js/css_colors.js",
+        "url": "/js/css_colors.js",
         "size": 40388,
         "type": "script"
     },
     {
-        "url": "js/dateutils.js",
+        "url": "/js/dateutils.js",
         "size": 30159,
         "type": "script"
     },
     {
-        "url": "js/utils.js",
+        "url": "/js/utils.js",
         "size": 9648,
         "type": "script"
     },
     {
-        "url": "scan.mjs",
-        "size": 94,
-        "type": "script"
-    },
-    {
-        "url": "serviceworker.js",
+        "url": "/serviceworker.js",
         "size": 5692,
         "type": "script"
     }

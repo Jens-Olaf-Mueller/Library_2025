@@ -49,7 +49,7 @@ window.addEventListener('loadcomplete', (e) => {
 const loader = new LoadManager();
 
 async function run() {
-    await loader.loadAll('/Library_2025/assets/assets.json');
+    await loader.loadAll('assets.json');
 }
 
 // const scanner = new AssetScanner();
