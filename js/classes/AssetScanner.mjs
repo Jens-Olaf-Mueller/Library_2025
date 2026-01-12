@@ -15,25 +15,34 @@ import path from 'node:path';
  * @author      Jens-Olaf Müller
  * @license     MIT
  * * @example     import AssetScanner from './js/classes/AssetScanner.mjs';
- * const scanner = new AssetScanner({ path: './', ignoreText: false });
+ * const scanner = new AssetScanner({ path: './', markup: true, scripts: true });
  * scanner.scan();
  */
 export default class AssetScanner {
-
-    constructor(config = {}) {
-        this.rootPath = config.path || './';
-        this.fileName = config.filename || 'assets.json';
+    /**
+     * @param {object} [options={}]                     - Configuration for the scanner.
+     * @param {string} [options.path='./']              - startpath for the scanner
+     * @param {string} [options.filename='assets.json'] - the output filename
+     * @param {boolean} [options.markup=false]          - Skip markup files in progress.
+     * @param {boolean} [options.styles=false]          - Skip CSS files in progress.
+     * @param {boolean} [options.scripts=false]         - Skip JS files in progress.
+     * @param {boolean} [options.text=false]            - Skip text/md files in progress.
+     */
+    constructor(options = {}) {
+        this.rootPath = options.path || './';
+        this.fileName = options.filename || 'assets.json';
         this.outputFile = path.join(this.rootPath, this.fileName);
 
         // Configuration Flags
-        this.ignoreHTML = config.ignoreHTML ?? true;
-        this.ignoreStyles = config.ignoreStyles ?? true;
-        this.ignoreScripts = config.ignoreScripts ?? true;
-        this.ignoreText = config.ignoreText ?? true;
+        this.includeStyles = options.styles ?? false;
+        this.includeScripts = options.scripts ?? false;
+        this.includeMarkup = options.markup ?? false;
+        this.includeText = options.text ?? false;
     }
 
     /**
      * Set of files/folders that are always ignored
+     * '.DS_Store' is a MacOS system file!
      */
     get #blackList() {
         return [this.fileName, 'assetscanner.js', 'scan.mjs', '.DS_Store', '.git', '.gitignore', 'node_modules'];
@@ -54,10 +63,10 @@ export default class AssetScanner {
 
             // Filter according to flags
             const filteredAssets = assets.filter(asset => {
-                if (this.ignoreHTML && asset.type === 'markup') return false;
-                if (this.ignoreStyles && asset.type === 'style') return false;
-                if (this.ignoreScripts && asset.type === 'script') return false;
-                if (this.ignoreText && asset.type === 'text') return false;
+                if (!this.includeStyles && asset.type === 'style') return false;
+                if (!this.includeScripts && asset.type === 'script') return false;
+                if (!this.includeMarkup && asset.type === 'markup') return false;
+                if (!this.includeText && asset.type === 'text') return false;
                 return true;
             });
 

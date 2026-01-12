@@ -8,41 +8,52 @@ import Library from './Library.js';
  * It uses the Streams API to track the download progress of binary assets.
  * * Features:
  * - Manifest Support: Integrates with AssetScanner's assets.json.
- * - Selective Loading: Toggle tracking for scripts, styles, and markup.
+ * - Selective Loading: Toggle tracking for scripts, styles, text-files and markup.
  * - Hybrid Loading: Supports DOM-based scanning and manual task registration.
  * - Global Cache: Stores processed assets for easy retrieval.
  * - CSS Integration: Sets images as CSS variables for container backgrounds.
+ * * CSS variables from this LoadManager start with: "--asset- ..."
  * * @version 1.2.0
  * @extends Library
  */
 export class LoadManager extends Library {
+    #delay = 200;
+    get delay() { return this.#delay; }
+    set delay(newVal) {
+        if (typeof newVal == 'number' && newVal >= 0 && newVal < 301) this.#delay = newVal;
+    }
+
+    totalExpectedBytes = 0;
+    totalLoadedBytes = 0;
+    defaultWeight = 512000;
+
+
+    /** @type {Map<string, object>} Task registry for progress tracking */
+    tasks = new Map();
+
+    /** @type {Map<string, any>} Global storage for processed assets */
+    cache = new Map();
+
     /**
-     * @param {object} [config={}] - Configuration for the manager.
-     * @param {boolean} [config.autoInit=true] - If true, scans the DOM immediately.
-     * @param {boolean} [config.ignoreHTML=true] - Skip markup files in progress.
-     * @param {boolean} [config.ignoreStyles=true] - Skip CSS files in progress.
-     * @param {boolean} [config.ignoreScripts=true] - Skip JS files in progress.
-     * @param {boolean} [config.ignoreText=true] - Skip text/md files in progress.
+     * @param {object}  [options={}] - Configuration for the manager.
+     * @param {boolean} [options.autoInit=true] - If true, scans the DOM immediately.
+     * @param {boolean} [options.markup=false]  - Skip markup files in progress.
+     * @param {boolean} [options.styles=false]  - Skip CSS files in progress.
+     * @param {boolean} [options.scripts=false] - Skip JS files in progress.
+     * @param {boolean} [options.text=false]    - Skip text/md files in progress.
+     * @param {number}  [options.delay=200]     - delay time to skip the display of the progress element
      */
-    constructor(config = {}) {
-        super(config.parent || null);
+    constructor({autoInit = true, styles = false, scripts = false, markup = false, text = false, delay = 200 } = {},
+                 element = null, parent = null) {
+        super(parent);
+        this.element = element;
 
-        // Configuration Flags
-        this.ignoreHTML = config.ignoreHTML ?? true;
-        this.ignoreStyles = config.ignoreStyles ?? true;
-        this.ignoreScripts = config.ignoreScripts ?? true;
-        this.ignoreText = config.ignoreText ?? true;
-
-        /** @type {Map<string, object>} Task registry for progress tracking */
-        this.tasks = new Map();
-        /** @type {Map<string, any>} Global storage for processed assets */
-        this.cache = new Map();
-
-        this.totalExpectedBytes = 0;
-        this.totalLoadedBytes = 0;
-        this.defaultWeight = 512000;
-
-        if (config.autoInit !== false) this.initFromDOM();
+        this.includeStyles = styles;
+        this.includeScripts = scripts;
+        this.includeMarkup = markup;
+        this.includeText = text;
+        this.delay = delay;
+        if (autoInit) this.initFromDOM();
     }
 
     /**
@@ -115,9 +126,8 @@ export class LoadManager extends Library {
         }
         // 2. Handle background containers via CSS Variables
         else {
-            const varName = `--asset-${this.stringTo(key, 'kebab')}`;
-
             // Set the variable via Library method
+            const varName = `--asset-${this.stringTo(key, 'kebab')}`;
             this.setCSSProperty(varName, `url("${url}")`, element);
 
             // Apply variable to background as a default behavior
@@ -154,6 +164,7 @@ export class LoadManager extends Library {
             percent: Math.min(percent, 99.9),
             loaded: this.totalLoadedBytes,
             total: this.totalExpectedBytes,
+            url: task.url,
             task
         });
     }
@@ -184,7 +195,6 @@ export class LoadManager extends Library {
      * Fetches a resource and tracks progress.
      */
     async loadAsset(url, key) {
-        console.log(url)
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
@@ -216,12 +226,22 @@ export class LoadManager extends Library {
 
     /**
      * Executes all registered tasks in parallel, optionally loading a manifest.
+     * Includes a visual delay to prevent flickering on fast loads/cache hits.
      * Automatically resolves paths using the library's projectFolder.
      * @param {string|null} [manifestUrl=null] - Path to the assets.json
+     * @param {number} [delay=200] - Delay in ms before showing the loader
      */
     async loadAll(manifestUrl = null) {
         // Use the inherited getter from Library
         const base = this.projectFolder;
+
+        // Timer for the visual delay
+        const visualTimer = setTimeout(() => {
+            this._raiseEvent('loadstart', {
+                totalTasks: this.tasks.size,
+                visible: true
+            });
+        }, this.delay);
 
         if (manifestUrl) {
             try {
@@ -237,19 +257,18 @@ export class LoadManager extends Library {
 
                 autoAssets.forEach(asset => {
                     // 1. Filter checks
-                    if (this.ignoreHTML && asset.type === 'markup') return;
-                    if (this.ignoreStyles && asset.type === 'style') return;
-                    if (this.ignoreScripts && asset.type === 'script') return;
-                    if (this.ignoreText && asset.type === 'text') return;
+                    const type = asset.type;
+                    if (type === 'style' && !this.includeStyles) return;
+                    if (type === 'script' && !this.includeScripts) return;
+                    if (type === 'markup' && !this.includeMarkup) return;
+                    if (type === 'text' && !this.includeText) return;
 
                     // 2. Key generation
                     const fileName = asset.url.split('/').pop().split('.').shift();
                     const key = this.stringTo(fileName, 'camel');
 
                     // 3. Register or update task
-                    if (!this.tasks.has(key)) {
-                        this.registerTask(key, asset.size);
-                    }
+                    if (!this.tasks.has(key)) this.registerTask(key, asset.size);
 
                     const task = this.tasks.get(key);
 
@@ -277,6 +296,7 @@ export class LoadManager extends Library {
 
         const keys = Array.from(this.tasks.keys());
         if (keys.length === 0) {
+            clearTimeout(visualTimer); // Cancel timer if nothing to do
             this._raiseEvent('loadcomplete', { totalFiles: 0, totalBytes: 0 });
             return;
         }
@@ -313,6 +333,9 @@ export class LoadManager extends Library {
         } catch (error) {
             console.error('[LoadManager] Batch loading failed:', error);
             this._raiseEvent('loaderror', { error: error.message });
+        } finally {
+            // IMPORTANT: Always clear the timer at the end
+            clearTimeout(visualTimer);
         }
     }
 

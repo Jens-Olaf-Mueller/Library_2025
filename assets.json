@@ -1,35 +1,5 @@
 [
     {
-        "url": "/assets/images/Elaine.mp4",
-        "size": 11963102,
-        "type": "video"
-    },
-    {
-        "url": "/assets/images/IMG_8887.jpg",
-        "size": 2539483,
-        "type": "image"
-    },
-    {
-        "url": "/assets/images/IMG_8889.jpg",
-        "size": 2710443,
-        "type": "image"
-    },
-    {
-        "url": "/assets/images/Pachabel.mp3",
-        "size": 28954713,
-        "type": "audio"
-    },
-    {
-        "url": "/assets/images/icons/gear.png",
-        "size": 37234,
-        "type": "image"
-    },
-    {
-        "url": "/assets/images/icons/home.png",
-        "size": 6259,
-        "type": "image"
-    },
-    {
         "url": "/assets/style/calculator.css",
         "size": 5426,
         "type": "style"
@@ -60,18 +30,68 @@
         "type": "style"
     },
     {
+        "url": "/assets/test/Elena.jpeg",
+        "size": 71427,
+        "type": "image"
+    },
+    {
+        "url": "/assets/test/Fallon01.jpg",
+        "size": 453371,
+        "type": "image"
+    },
+    {
+        "url": "/assets/test/Femdom.mp4",
+        "size": 179110,
+        "type": "video"
+    },
+    {
+        "url": "/assets/test/Math.jpg",
+        "size": 72971,
+        "type": "image"
+    },
+    {
+        "url": "/assets/test/Pachabel.mp3",
+        "size": 28954713,
+        "type": "audio"
+    },
+    {
+        "url": "/assets/test/Power.mp4",
+        "size": 939583,
+        "type": "video"
+    },
+    {
+        "url": "/assets/test/Puerto01.jpg",
+        "size": 2505760,
+        "type": "image"
+    },
+    {
+        "url": "/assets/test/Puerto02.jpg",
+        "size": 2112013,
+        "type": "image"
+    },
+    {
+        "url": "/assets/test/Vika01.jpg",
+        "size": 136621,
+        "type": "image"
+    },
+    {
+        "url": "/assets/test/photo01.jpg",
+        "size": 118296,
+        "type": "image"
+    },
+    {
         "url": "/index.html",
-        "size": 3149,
+        "size": 3177,
         "type": "markup"
     },
     {
         "url": "/js/app.js",
-        "size": 3411,
+        "size": 3676,
         "type": "script"
     },
     {
         "url": "/js/classes/AssetScanner.mjs",
-        "size": 4674,
+        "size": 5306,
         "type": "script"
     },
     {
@@ -96,7 +116,7 @@
     },
     {
         "url": "/js/classes/Library.js",
-        "size": 31062,
+        "size": 31205,
         "type": "script"
     },
     {
@@ -106,7 +126,7 @@
     },
     {
         "url": "/js/classes/LoadManager.js",
-        "size": 14705,
+        "size": 13519,
         "type": "script"
     },
     {
@@ -127,16 +147,6 @@
     {
         "url": "/js/classes/WheelPicker30.js",
         "size": 28752,
-        "type": "script"
-    },
-    {
-        "url": "/js/classes/_AssetScanner.mjs",
-        "size": 3986,
-        "type": "script"
-    },
-    {
-        "url": "/js/classes/_LoadManager.js",
-        "size": 11825,
         "type": "script"
     },
     {

@@ -18,11 +18,11 @@
 import AssetScanner from './js/classes/AssetScanner.mjs';
 
 const scanner = new AssetScanner({
-    path: './',            // Root des Projekts
-    filename: 'assets.json',
-    ignoreStyles: false,   // Wir wollen Styles tracken...
-    ignoreScripts: false,  // ... und Scripte...
-    ignoreHTML: false      // ... und HTML auch!
+    path: './',                 // Root des Projekts
+    filename: 'assets.json',    // Dateiname der Manifest-Datei
+    styles: true,               // Wir wollen Styles tracken...
+    scripts: true,              // ... und Scripte...
+    markup: true                // ... und HTML auch!
 });
 
 scanner.scan();

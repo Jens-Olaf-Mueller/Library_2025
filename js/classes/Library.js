@@ -142,15 +142,14 @@ export default class Library {
      */
     get visible() { return this.#visible; }
     set visible(value) {
-        // const flag = value === true || value === 'true';
         const flag = this.toBoolean(value);
         this.#visible = flag;
 
-        if (this.#element) {
-            // if (flag) this.#element.setAttribute('visible', 'true');
-            // else this.#element.removeAttribute('visible');
-            if (flag) this.rootElement.removeAttribute('hidden');
-            else this.rootElement.setAttribute('hidden', '');
+        const priorElement = this.rootElement ? this.rootElement : this.#element;
+
+        if (priorElement) {
+            if (flag) priorElement.removeAttribute('hidden');
+            else priorElement.setAttribute('hidden', '');
         }
         if (flag && typeof this.show === 'function') this.show();
         else if (!flag && typeof this.hide === 'function') this.hide();

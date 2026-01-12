@@ -34,19 +34,28 @@ document.addEventListener('DOMContentLoaded', run);
 // Angenommen, du hast ein <progress id="prgBar" max="100" value="0"></progress>
 const pbar = $('prgBar');
 const spnPercent = $('spnPercent');
+const loader = new LoadManager({scripts: true, styles: true, markup: true},'lblProgressBar')
+
+// This event only fires if loading takes longer than 150ms
+window.addEventListener('loadstart', () => {
+    // pbar.parentElement.removeAttribute('hidden');
+    loader.visible = true;
+});
 
 window.addEventListener('loadprogress', (e) => {
     pbar.value = e.detail.percent;
-    // pbar.parentElement.innerText = `Loading ${e.detail.key}...`;
     spnPercent.innerText= `${e.detail.percent.toFixed(0)}%`;
+    // console.log(`Loading...${e.detail.url}`)
 });
 
 window.addEventListener('loadcomplete', (e) => {
     pbar.value = 100;
-    console.log("Fertig! Gesamte Bytes:", e.detail.totalBytes);
+    console.log("Loading complete. Total bytes:", e.detail.totalBytes);
+    // pbar.parentElement.setAttribute('hidden','');
+    loader.visible = false;
+    console.log(loader)
 });
 
-const loader = new LoadManager();
 
 async function run() {
     await loader.loadAll('assets.json');

@@ -1,5 +1,5 @@
-/assets/images
-.DS_Store
+/assets/tests
 scan.mjs
+.DS_Store
 _AssetScanner.mjs
 _LoadManager.js
