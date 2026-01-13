@@ -1,279 +1,178 @@
 import Library from './Library.js';
 
 /**
- * Haptic feedback helper.
- * Minimal API: tick, error, whoosh.
- * Platform strategy (to be implemented step-by-step):
- * - Android/Chrome: Web Vibration API (navigator.vibrate)
- * - iOS/Safari: iOS "switch input toggle" workaround (like ios-haptics)
- * - Desktop/unsupported: no-op
- * - ioS:
- * @see {@link https://github.com/tijnjh/ios-haptics}
- * @see {@link https://www.reddit.com/r/javascript/comments/1ldh5z9/built_a_library_for_adding_haptic_feedback_to_web/}
+ * Haptic — Feedback utility for mobile devices.
+ * ===============================================================
+ * Provides tactile feedback for UI interactions.
+ * - Android: Uses the Web Vibration API with specific patterns.
+ * - iOS: Uses the "Switch-Hack" (toggling a hidden checkbox).
+ * - Desktop: Provides console logs for development.
+ *
+ * ---------------------------------------------------------------
+ * I. Public Methods
+ * ---------------------------------------------------------------
+ * - {@link activate}  - Arms the system (required after user gesture)
+ * - {@link execute}   - Triggers a specific haptic effect ('tick', 'error', 'whoosh')
+ * - {@link stop}      - Immediately cancels ongoing vibrations (Android)
+ *
+ * ---------------------------------------------------------------
+ * II. Private Methods
+ * ---------------------------------------------------------------
+ * - #detectEngine:    - Detects platform (android, ios, noop)
+ * - #pulse:           - Central dispatcher for hardware interaction
+ * - #passThrottle:    - Ensures hardware isn't flooded by rapid pulses
+ * - #createIOSSwitchElement: - Prepares the hidden DOM element for iOS hack
+ * ===============================================================
  */
 export class Haptic extends Library {
+
+    /** @type {boolean} Global toggle to mute/unmute haptics */
     #enabled = true;
     get enabled() { return this.#enabled; }
-    /**
-     * Enable or disable haptic output globally for this instance.
-     * @param {boolean} flag
-     */
-    set enabled(flag) {
-        this.#enabled = this.toBoolean(flag);
-    }
+    set enabled(flag) { this.#enabled = this.toBoolean(flag); }
 
-    /** @type {'auto'|'android'|'ios'|'noop'} */
-    #engine = 'auto';
+    /** @type {'android'|'ios'|'noop'} The detected hardware engine */
+    #engine = 'noop';
+    get engine() { return this.#engine; }
 
-    /** @type {boolean} */
+    /** @type {boolean} Flag indicating if the system is armed and ready */
     #active = false;
+    get active() { return this.#active; }
 
-    /** @type {number} */
+    /** @type {number} Timestamp of the last vibration triggered */
     #lastPulseTs = 0;
 
-    /** @type {number} */
-    #minIntervalMs = 0;
-
-    /** @type {HTMLElement|null} */
-    #switchEl = null;
-
-    /** @type {boolean} */
-    #debug = false;
+    /** @type {number} Minimum delay (ms) between pulses */
+    #minIntervalMs = 15;
 
     /**
-     * Create a Haptic instance.
-     * The constructor only prepares internal state.
-     * No haptic feedback is triggered here.
-     *
-     * Responsibilities:
-     * - Forward parent to Library
-     * - Detect runtime platform (engine)
-     * - Initialize default state
-     *
-     * @param {HTMLElement|Document|null} parent - Host component reference
+     * Creates a new Haptic instance and detects the platform.
+     * @param {Object|HTMLElement|null} [parent=null] - Reference to the calling component or class.
      */
     constructor(parent = null) {
         super(parent);
-        // Detect and store which engine should be used on this device
         this.#engine = this.#detectEngine();
+        this.log(`${this.#engine.toUpperCase()} engine initialized...`);
     }
 
-
     /**
-     * Mark the haptic system as armed.
-     *
-     * Once armed, haptic feedback is allowed to run.
-     * This should be called exactly once after a valid user gesture
-     * (e.g. touchstart, pointerdown, click).
+     * Arms the haptic system. Must be called within a user-initiated event.
      */
     activate() {
+        if (this.#active) return;
         this.#active = true;
+
+        if (this.#engine === 'ios') this.#createIOSSwitchElement();
+        this.log('Haptic system armed and ready for pulses.');
     }
 
     /**
-     * Emit a short "tick" feedback.
-     * Intended for wheel scrolling steps.
-     *
-     * Behaviour:
-     * - Respects enabled flag
-     * - Requires prior activation
-     * - Android: short vibration
-     * - iOS / noop: no-op (for now)
-     *
-     * @returns {boolean} True if a haptic attempt was made
+     * Executes a specific haptic feedback effect.
+     * @param {'tick'|'error'|'whoosh'} effect - The name of the effect to trigger.
+     * @returns {boolean}
      */
-    tick() {
-        if (!this.#enabled) return false;
-        if (!this.#ensureActive()) return false;
+    execute(effect) {
+        if (!this.#enabled || !this.#active) return false;
 
-        switch (this.#engine) {
-            case 'android':
-                // NOTE eventually a Getter / Setter "tickDuration"; default 8ms
-                // Very short pulse; safe for frequent use
-                navigator.vibrate(8); // 8ms
-                console.log('Android: tick!');
-                return true;
+        switch (effect) {
+            case 'tick':
+                return this.#pulse(10, 'tick');
 
-            case 'ios':
-                // iOS implementation comes later
-                console.log('iOS: tick!');
-                return false;
+            case 'error':
+                return this.#pulse([50, 100, 50], 'error');
 
-            case 'noop':
+            case 'whoosh':
+                return this.#pulse(35, 'whoosh');
+
             default:
+                this.log(`Unknown effect requested: ${effect}`, true);
                 return false;
         }
     }
 
-
-
     /**
-     * Emit an "error" feedback (e.g., invalid input, required field missing).
-     * Typically a short, noticeable pattern.
-     * @returns {boolean} True if a pulse was attempted, otherwise false.
-     */
-    error() {
-        return false;
-    }
-
-    /**
-     * Emit a "whoosh" feedback (e.g., page swipe transition).
-     * Typically a slightly longer/stronger single pulse or short pattern.
-     * @returns {boolean} True if a pulse was attempted, otherwise false.
-     */
-    whoosh() {
-        return false;
-    }
-
-    /**
-     * Optional: stop any ongoing vibration (Android) if supported.
-     * On unsupported platforms this is a no-op.
+     * Immediately cancels any ongoing vibration (Android only).
      */
     stop() {
-        // Step-by-step: for Android vibrate, call vibrate(0).
+        if (this.#engine === 'android') navigator.vibrate(0);
+        this.log('Stop signal sent.');
     }
 
-    // =========================================================
-    // Private methods (internal)
-    // =========================================================
-
     /**
-     * Detect which haptic engine should be used for the current runtime.
-     *
-     * Decision rules (intentionally conservative):
-     * - Android / Chromium with Vibration API  → 'android'
-     * - iOS (Safari)                           → 'ios'
-     * - Everything else (desktop, unsupported) → 'noop'
-     *
-     * No haptic feedback is triggered here.
+     * Detects the environment and chooses the best engine.
      * @private
      * @returns {'android'|'ios'|'noop'}
      */
     #detectEngine() {
-        // iOS detection (Safari / WKWebView)
-        if (this.#isIOSSafari()) return 'ios';
-        // Android / Chromium-based browsers with Vibration API
-        if (this.#hasVibrationAPI()) return 'android';
-        // Fallback: no haptic support
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        if (isIOS) return 'ios';
+        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') return 'android';
         return 'noop';
     }
 
-
     /**
-     * Ensure haptics are allowed to run.
-     * Many mobile browsers require a prior user gesture (touch/click) before
-     * vibration-like effects are permitted.
-     *
-     * This method does not register listeners (we can add that next).
-     * It only checks whether the instance is already armed.
-     *
+     * Central pulse dispatcher.
      * @private
-     * @returns {boolean} True if haptics may run, otherwise false.
+     * @param {number|number[]} pattern - The vibration pattern.
+     * @param {string} label - The type of pulse (for logging).
+     * @returns {boolean}
      */
-    #ensureActive() {
-        return (this.#active === true);
+    #pulse(pattern, label) {
+        if (label === 'tick' && !this.#passThrottle()) return false;
+
+        this.log(`${this.#engine.toUpperCase()} execution -> ${label.toUpperCase()} (${JSON.stringify(pattern)})`);
+
+        if (this.#engine === 'android') {
+            return navigator.vibrate(pattern);
+        }
+
+        if (this.#engine === 'ios' && this.element) {
+            this.element.checked = !this.element.checked;
+            return true;
+        }
+
+        return false;
     }
 
-
     /**
-     * Apply throttling to avoid overly frequent pulses (useful for wheel scrolling).
+     * Prevents the hardware from being overwhelmed.
      * @private
-     * @returns {boolean} True if enough time elapsed, else false.
+     * @returns {boolean}
      */
     #passThrottle() {
-        return false;
+        const now = Date.now();
+        if (now - this.#lastPulseTs < this.#minIntervalMs) return false;
+        this.#lastPulseTs = now;
+        return true;
     }
 
     /**
-     * Trigger a pulse using the currently selected engine.
-     * This is the single internal entry point used by tick/error/whoosh.
-     * @private
-     * @param {number|number[]} pattern - Duration in ms or vibration pattern array.
-     * @returns {boolean} True if a pulse was attempted, otherwise false.
-     */
-    #pulse(pattern) {
-        return false;
-    }
-
-    /**
-     * Trigger vibration via Web Vibration API (Android/Chrome).
-     * @private
-     * @param {number|number[]} pattern
-     * @returns {boolean}
-     */
-    #pulseAndroid(pattern) {
-        return false;
-    }
-
-    /**
-     * Trigger haptic feedback via iOS Safari workaround (switch input toggle).
-     * @private
-     * @returns {boolean}
-     */
-    #pulseIOS() {
-        return false;
-    }
-
-    /**
-     * Create the hidden "switch" input element used for iOS haptic workaround.
-     * @private
-     * @returns {HTMLElement} The created input element.
-     */
-    #createIOSSwithElement() {
-        return /** @type {any} */ (null);
-    }
-
-    /**
-     * Clean up any DOM artifacts created for iOS workaround.
+     * Creates the hidden iOS haptic switch using the Library's helper.
      * @private
      */
-    #cleanupIOS() {
-        // Step-by-step: remove #switchEl if present.
-    }
+    #createIOSSwitchElement() {
+        if (this.element) return;
 
+        this.element = this.createElement('input', {
+            type: 'checkbox',
+            ariaHidden: 'true',
+            tabIndex: -1,
+            style: {
+                position: 'fixed',
+                width: 0,
+                height: 0,
+                opacity: 0,
+                pointerEvents: 'none'
+            }
+        });
 
-    /**
-     * Detect whether the current runtime is iOS Safari (or iOS WebView).
-     *
-     * Reasoning:
-     * - iOS devices report as iPhone / iPad / iPod
-     * - iPadOS pretends to be macOS but still has touch points
-     *
-     * This is a heuristic, but stable enough for platform routing.
-     *
-     * @private
-     * @returns {boolean}
-     */
-    #isIOSSafari() {
-        // Classic iOS devices
-        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) return true;
-        // iPadOS (reports as Mac, but has touch support)
-        return (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ? true : false;
-    }
+        const container = (this.parent && this.parent.rootElement)
+            ? this.parent.rootElement
+            : document.body;
 
-
-    /**
-     * Check whether the Web Vibration API is available in this environment.
-     *
-     * Notes:
-     * - Availability does NOT guarantee that vibration is actually felt.
-     * - On iOS this usually exists as a no-op or is missing entirely.
-     * - On Android/Chromium this is typically functional.
-     *
-     * @private
-     * @returns {boolean}
-     */
-    #hasVibrationAPI() {
-        return (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function');
-    }
-
-
-    /**
-     * Internal logger (only active if #debug is true).
-     * @private
-     * @param {...any} args
-     */
-    #log(...args) {
-        void args;
+        container.appendChild(this.element);
+        this.log('Hidden checkbox for iOS injected into DOM...');
     }
 }

@@ -51,10 +51,8 @@ export class WheelPicker extends Library {
     #wheels = [];
     get wheels() { return this.#wheels; }
 
-
     /** @type {number[]} */
     #activeValues = []; // per wheel
-
 
     #mode = 'time'; // default
     /** @returns {'time'|'hours'|'spin'|'date'|'custom'} */
@@ -269,8 +267,9 @@ export class WheelPicker extends Library {
         this.#dataSource = data;
     }
 
-
-    // ====== title resolving ===================================================
+    /**
+     * title resolving
+     */
     #title = null;
     get title() {
         if (this.#title) return this.#title;
@@ -324,9 +323,6 @@ export class WheelPicker extends Library {
 
     haptic = null;
 
-    // ============================================================
-    // Constructor
-    // ============================================================
     /**
      * @param {HTMLInputElement} input - The associated input element (type="text", role="wheel", readonly).
      * @param {Object} [options] - Optional configuration overrides.
@@ -376,7 +372,7 @@ export class WheelPicker extends Library {
         this.#columns = Array.from(this.DOM.divWheelTrack.querySelectorAll('.wheel-column'));
         this.visible = this.initWheels(this.mode);
         this.haptic.activate();
-        console.log(this)
+        this.log(this);
     }
 
 
@@ -465,10 +461,16 @@ export class WheelPicker extends Library {
             // no data available for the WheelPicker!
             // set the focus to the input element!
             if (!this.visible) {
+                // REMOVE
+                this.haptic.activate();
+                this.haptic.error();
+                console.warn('[WheelPicker.hide] Remove haptics here!');
+                // REMOVE
                 this.input.removeAttribute('readonly');
                 this.input.focus();
             }
         }
+        if (this.haptic) this.haptic.stop();
         this.#overlay.remove();
         this.#overlay = null;
         this.#columns = [];

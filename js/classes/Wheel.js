@@ -185,7 +185,6 @@ export class Wheel extends ListGenerator {
         this.#updateFromScroll();
         this.#recentreIfNeeded();
         this.#scheduleSnap();
-        // this.haptic.tick();
     }
 
     /**
@@ -206,21 +205,42 @@ export class Wheel extends ListGenerator {
      * Ermittelt aus scrollTop den virtuellen Index der aktiven Zeile,
      * berechnet den "echten" Index und wendet 3D-Transform + Active-Klasse an.
      */
+    // #updateFromScroll() {
+    //     const scrollTop = this.column.scrollTop;
+    //     const rawIndex  = scrollTop / this.itemHeight;
+
+    //     // Virtueller Index der Zeile im Auswahlfenster
+    //     let activeVirtual = Math.round(rawIndex + this.centerOffset);
+    //     activeVirtual = Math.max(0, Math.min(this.itemsCount - 1, activeVirtual));
+    //     this.activeVirtualIndex = activeVirtual;
+
+    //     // "Echter" Index (0..baseItemsCount-1)
+    //     const realIndex = ((activeVirtual % this.baseItemsCount) + this.baseItemsCount) % this.baseItemsCount;
+    //     this.valueIndex = realIndex;
+
+    //     // → genau HIER den 3D-Helper aufrufen
+    //     this.#apply3DEffect();
+    // }
+
+
     #updateFromScroll() {
         const scrollTop = this.column.scrollTop;
         const rawIndex  = scrollTop / this.itemHeight;
 
-        // Virtueller Index der Zeile im Auswahlfenster
         let activeVirtual = Math.round(rawIndex + this.centerOffset);
         activeVirtual = Math.max(0, Math.min(this.itemsCount - 1, activeVirtual));
-        this.activeVirtualIndex = activeVirtual;
 
-        // "Echter" Index (0..baseItemsCount-1)
-        const realIndex = ((activeVirtual % this.baseItemsCount) + this.baseItemsCount) % this.baseItemsCount;
-        this.valueIndex = realIndex;
+        // NEU: Nur wenn der Index sich wirklich geändert hat!
+        if (this.activeVirtualIndex !== activeVirtual) {
+            this.activeVirtualIndex = activeVirtual;
 
-        // → genau HIER den 3D-Helper aufrufen
-        this.#apply3DEffect();
+            // HIER DER TICK:
+            if (this.haptic) this.haptic.execute('tick');
+
+            const realIndex = ((activeVirtual % this.baseItemsCount) + this.baseItemsCount) % this.baseItemsCount;
+            this.valueIndex = realIndex;
+            this.#apply3DEffect();
+        }
     }
 
 
@@ -298,7 +318,6 @@ export class Wheel extends ListGenerator {
         this.#snapTimer = setTimeout(() => {
             this.#snapToNearest();
         }, 75); // 75ms "Pause" = Scroll beendet
-        this.haptic.tick();
     }
 
     /**
@@ -404,14 +423,6 @@ export class Wheel extends ListGenerator {
             this.addItem(val, caption, i);
         }
     }
-
-    // ====== haptics dummy =====================================================
-
-    #doHaptic(action = 'tick') {
-        // TODO Haptik später implementieren
-        // evl. in Picker?!
-    }
-
 } // END CLASS
 
 // 3D configuration for the visual wheel effect.

@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * @module AssetScanner
+ * @module      AssetScanner
+ * @version     1.1.0
+ * @author      Jens-Olaf Müller
  * @description A high-performance Node.js utility class designed to recursively
  * scan a project directory. It collects metadata (file size, type,
  * and web-relative paths) to generate a 'Single Source of Truth' JSON manifest.
@@ -11,10 +13,7 @@ import path from 'node:path';
  * 1. LoadManager: For precise UI progress tracking.
  * 2. ServiceWorker: For automated offline asset caching.
  *
- * @version     1.1.0
- * @author      Jens-Olaf Müller
- * @license     MIT
- * * @example     import AssetScanner from './js/classes/AssetScanner.mjs';
+ * @example     import AssetScanner from './js/classes/AssetScanner.mjs';
  * const scanner = new AssetScanner({ path: './', markup: true, scripts: true });
  * scanner.scan();
  */
@@ -45,7 +44,7 @@ export default class AssetScanner {
      * '.DS_Store' is a MacOS system file!
      */
     get #blackList() {
-        return [this.fileName, 'assetscanner.js', 'scan.mjs', '.DS_Store', '.git', '.gitignore', 'node_modules'];
+        return [this.fileName, 'AssetScanner.mjs', 'scan.mjs', '.DS_Store', '.git', '.gitignore', 'node_modules'];
     }
 
     /**

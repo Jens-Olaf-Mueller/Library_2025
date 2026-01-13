@@ -17,48 +17,45 @@ document.addEventListener('expand', globalEventHandler);
 document.addEventListener('input', globalEventHandler);
 document.addEventListener('overflow', globalEventHandler);
 
-const msgbox = new MessageBox("Mal sehen, ob's läuft...", null, 'OK, Close, Load', true, true);
-
+// const msgbox = new MessageBox("Mal sehen, ob's läuft...", null, 'OK, Close, Load', true, true);
 // msgbox.gradientFrom = 'white';
 // msgbox.fade = true;
 // msgbox.autoClose= 5;
-msgbox.includeReadOnlyProperties = true;
+// msgbox.includeReadOnlyProperties = true;
 // const result = await msgbox.show();
 const body = document.getElementById('demoBody');
 const colors = new ColorHandler(body);
 const lib = new Library();
 
-
 document.addEventListener('DOMContentLoaded', run);
 
-// Angenommen, du hast ein <progress id="prgBar" max="100" value="0"></progress>
-const pbar = $('prgBar');
-const spnPercent = $('spnPercent');
-const loader = new LoadManager({scripts: true, styles: true, markup: true},'lblProgressBar')
+// const pbar = $('prgBar');
+// const spnPercent = $('spnPercent');
+// const loader = new LoadManager({scripts: true, styles: true, markup: true},'lblProgressBar')
 
-// This event only fires if loading takes longer than 150ms
-window.addEventListener('loadstart', () => {
-    // pbar.parentElement.removeAttribute('hidden');
-    loader.visible = true;
-});
+// // This event only fires if loading takes longer than 150ms
+// window.addEventListener('loadstart', () => {
+//     // pbar.parentElement.removeAttribute('hidden');
+//     loader.visible = true;
+// });
 
-window.addEventListener('loadprogress', (e) => {
-    pbar.value = e.detail.percent;
-    spnPercent.innerText= `${e.detail.percent.toFixed(0)}%`;
-    // console.log(`Loading...${e.detail.url}`)
-});
+// window.addEventListener('loadprogress', (e) => {
+//     pbar.value = e.detail.percent;
+//     spnPercent.innerText= `${e.detail.percent.toFixed(0)}%`;
+//     // console.log(`Loading...${e.detail.url}`)
+// });
 
-window.addEventListener('loadcomplete', (e) => {
-    pbar.value = 100;
-    console.log("Loading complete. Total bytes:", e.detail.totalBytes);
-    // pbar.parentElement.setAttribute('hidden','');
-    loader.visible = false;
-    console.log(loader)
-});
+// window.addEventListener('loadcomplete', (e) => {
+//     pbar.value = 100;
+//     console.log("Loading complete. Total bytes:", e.detail.totalBytes);
+//     // pbar.parentElement.setAttribute('hidden','');
+//     loader.visible = false;
+//     console.log(loader)
+// });
 
 
 async function run() {
-    await loader.loadAll('assets.json');
+    // await loader.loadAll('assets.json');
 }
 
 // const scanner = new AssetScanner();
@@ -68,13 +65,11 @@ async function run() {
 // console.log('=================================================================')
 // console.dir(combo)
 
-// const calendar = new Calendar();
-// calendar.showSettings = true;
+const calendar = new Calendar();
+calendar.showSettings = true;
 
 // const calculator = new Calculator(true, 'inpBuddy');
 // const calculator = new Calculator(true);
-
-// const picker = new WheelPicker($('inpArrival'));
 
 
 
@@ -96,12 +91,12 @@ function showPicker() {
 
     // 4. Object-Array
     // picker.onCustomModeReturn = 'object';
-    picker.dataSource = [
-        {januar: 1, februar: 2, märz: 3, april: 4, mai: 5, juni: 6},
-        {montag: 1, dienstag: 2, mittwoch: 3, donnerstag: 4, freitag: 5, samstag: 6, sonntag: 7},
-        {Anna: 0, alexandra: 1, lydia: 2, tucker: 6, hans: 12, john: 37, peter: 41},
-        // {Olga: 31, mia: 38, kim: 54}
-    ];
+    // picker.dataSource = [
+    //     {januar: 1, februar: 2, märz: 3, april: 4, mai: 5, juni: 6},
+    //     {montag: 1, dienstag: 2, mittwoch: 3, donnerstag: 4, freitag: 5, samstag: 6, sonntag: 7},
+    //     {Anna: 0, alexandra: 1, lydia: 2, tucker: 6, hans: 12, john: 37, peter: 41},
+    //     // {Olga: 31, mia: 38, kim: 54}
+    // ];
 
     picker.show();
 }

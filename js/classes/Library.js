@@ -156,6 +156,15 @@ export default class Library {
     }
 
 
+    #debugMode = false || location.hostname === 'localhost' ||
+                          location.hostname === '127.0.0.1' ||
+                          location.hostname === '::1';
+    get debugMode() { return this.#debugMode; }
+    set debugMode(flag) {
+        this.#debugMode = this.toBoolean(flag);
+    }
+
+
     /**
      * Used in Method createElement()
      */
@@ -443,6 +452,30 @@ export default class Library {
         return style.getPropertyValue(name)?.trim() || undefined;
     }
 
+    /**
+     * Internal logging helper
+     * @param {string} expression
+     */
+    log(expression, bold = false) {
+        if (this.debugMode) {
+            if (this.isClassInstance(expression) || typeof expression === 'object') {
+                console.log(expression);
+            } else if (typeof expression === 'string') {
+                const component = this.constructor.name;
+                const color = {
+                    WheelPicker: '#ffff00',
+                    Calculator:  '#ff6347',
+                    MessageBox:  '#daa520',
+                    Calendar:    '#00ffff',
+                    Haptic:      '#00ff00'
+                }
+                let style = `color: ${color[component] || '#666'};`;
+                style += (bold || color[component] === undefined) ? ' font-weight: bold;' : '';
+                console.log(`%c[${component}] ${expression}`, style);
+            }
+        }
+    }
+
     // REVIEW
     // ATTENTION  !
    /**
@@ -661,7 +694,7 @@ export default class Library {
         });
 
         // 3️⃣ Inject CSS variables into <style> (if not already present)
-        const styleId = `${prefix}-style`;
+        const styleId = `${prefix}Style`;
         if (!$(`#${styleId}`)) {
             const styleElmt = this.createElement('style', {
                 id: styleId,
@@ -687,7 +720,10 @@ export default class Library {
         });
 
         // 5️⃣ Optional: Log confirmation (useful during dev)
-        console.info(`_injectCSS(): Applied ${variables.length} vars for '${ctorName}', ${protectedElements.length} protected elements styled.`);
+        this.log(`_injectCSS():
+    Applied ${variables.length} new CSS variables "--${prefix}-..." in:
+        <style id="${styleId}">
+    ${protectedElements.length} protected elements styled.`);
     }
 }
 
