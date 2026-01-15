@@ -43,7 +43,10 @@ export class Haptic extends Library {
     #lastPulseTs = 0;
 
     /** @type {number} Minimum delay (ms) between pulses */
-    #minIntervalMs = 15;
+    #minIntervalMs = 33;
+    get intervalDelay() {
+        return this.#engine === 'ios' ? 50 : 33;
+    }
 
     /**
      * Creates a new Haptic instance and detects the platform.
@@ -76,13 +79,14 @@ export class Haptic extends Library {
 
         switch (effect) {
             case 'tick':
-                return this.#pulse(10, 'tick');
+                // return this.#pulse(20, 'tick');
+                return this.#pulse([33,5,0], 'tick');
 
             case 'error':
-                return this.#pulse([50, 100, 50], 'error');
+                return this.#pulse([75, 100, 75], 'error');
 
             case 'whoosh':
-                return this.#pulse(35, 'whoosh');
+                return this.#pulse([60,5,20], 'whoosh');
 
             default:
                 this.log(`Unknown effect requested: ${effect}`, true);
@@ -122,14 +126,12 @@ export class Haptic extends Library {
     #pulse(pattern, label) {
         if (label === 'tick' && !this.#passThrottle()) return false;
 
-        this.log(`${this.#engine.toUpperCase()} execution -> ${label.toUpperCase()} (${JSON.stringify(pattern)})`);
+        this.log(`${this.#engine.toUpperCase()} → ${label.toUpperCase()} (${JSON.stringify(pattern)})`);
 
-        if (this.#engine === 'android') {
-            return navigator.vibrate(pattern);
-        }
+        if (this.#engine === 'android')  return navigator.vibrate(pattern);
 
         if (this.#engine === 'ios' && this.element) {
-            this.element.checked = !this.element.checked;
+            this.element.click(); // trigger the label for the iOS-checkbox
             return true;
         }
 
@@ -143,7 +145,7 @@ export class Haptic extends Library {
      */
     #passThrottle() {
         const now = Date.now();
-        if (now - this.#lastPulseTs < this.#minIntervalMs) return false;
+        if (now - this.#lastPulseTs < this.intervalDelay) return false;
         this.#lastPulseTs = now;
         return true;
     }
@@ -155,24 +157,27 @@ export class Haptic extends Library {
     #createIOSSwitchElement() {
         if (this.element) return;
 
-        this.element = this.createElement('input', {
-            type: 'checkbox',
-            ariaHidden: 'true',
-            tabIndex: -1,
-            style: {
-                position: 'fixed',
-                width: 0,
-                height: 0,
-                opacity: 0,
-                pointerEvents: 'none'
-            }
+        // const id = `chkIOS-${Math.random().toString(36).substr(2, 9)}`;
+        const id = `chkIOSHapticTrigger`;
+        this.element = this.createElement('label', {
+            htmlFor: id,
+            style: {display: 'none'}
         });
+
+        this.element.appendChild(
+            this.createElement('input', {
+                type: 'checkbox',
+                id,
+                switch: 'true', // NOTE : this is important to make it work in iOS!
+            })
+        );
 
         const container = (this.parent && this.parent.rootElement)
             ? this.parent.rootElement
             : document.body;
 
         container.appendChild(this.element);
-        this.log('Hidden checkbox for iOS injected into DOM...');
+
+        this.log('Hidden iOS Structure (Checkbox + Label) injected.');
     }
 }

@@ -65,8 +65,8 @@ async function run() {
 // console.log('=================================================================')
 // console.dir(combo)
 
-const calendar = new Calendar();
-calendar.showSettings = true;
+// const calendar = new Calendar();
+// calendar.showSettings = true;
 
 // const calculator = new Calculator(true, 'inpBuddy');
 // const calculator = new Calculator(true);
@@ -80,6 +80,8 @@ $('input[type="text"][role="wheel"]', true).forEach(inp =>
 function showPicker() {
     if ($('divWheelOverlay')) return;
     const picker = new WheelPicker(this, {onCustomModeReturn: 'text'});
+    picker.debugMode = $('chkDebugMode').checked;
+    picker.haptic.debugMode = $('chkDebugMode').checked;
     // 1. Array:
     // picker.dataSource = ['Norway','Sweden','Germany','Switzerland','United Kingdom','Spain'];
 
@@ -91,12 +93,12 @@ function showPicker() {
 
     // 4. Object-Array
     // picker.onCustomModeReturn = 'object';
-    // picker.dataSource = [
-    //     {januar: 1, februar: 2, märz: 3, april: 4, mai: 5, juni: 6},
-    //     {montag: 1, dienstag: 2, mittwoch: 3, donnerstag: 4, freitag: 5, samstag: 6, sonntag: 7},
-    //     {Anna: 0, alexandra: 1, lydia: 2, tucker: 6, hans: 12, john: 37, peter: 41},
-    //     // {Olga: 31, mia: 38, kim: 54}
-    // ];
+    picker.dataSource = [
+        {januar: 1, februar: 2, märz: 3, april: 4, mai: 5, juni: 6},
+        {montag: 1, dienstag: 2, mittwoch: 3, donnerstag: 4, freitag: 5, samstag: 6, sonntag: 7},
+        {Anna: 0, alexandra: 1, lydia: 2, tucker: 6, hans: 12, john: 37, peter: 41},
+        // {Olga: 31, mia: 38, kim: 54}
+    ];
 
     picker.show();
 }
