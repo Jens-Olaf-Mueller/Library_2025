@@ -8,17 +8,19 @@ import Library from './Library.js';
  * - iOS: Uses the "Switch-Hack" (toggling a hidden checkbox).
  * - Desktop: Provides console logs for development.
  *
+ * @see {@link https://github.com/itsMaz1n/tactus}
+ *
  * ---------------------------------------------------------------
  * I. Public Methods
  * ---------------------------------------------------------------
- * - {@link activate}  - Arms the system (required after user gesture)
- * - {@link execute}   - Triggers a specific haptic effect ('tick', 'error', 'whoosh')
- * - {@link stop}      - Immediately cancels ongoing vibrations (Android)
+ * - {@link activate}   - Arms the system (required after user gesture)
+ * - {@link execute}    - Triggers a specific haptic effect ('tick', 'error', 'whoosh')
+ * - {@link stop}       - Immediately cancels ongoing vibrations (Android)
+ * - {@link terminate}  - Removes a possible injected iOS-Switch element
  *
  * ---------------------------------------------------------------
  * II. Private Methods
  * ---------------------------------------------------------------
- * - #detectEngine:    - Detects platform (android, ios, noop)
  * - #pulse:           - Central dispatcher for hardware interaction
  * - #passThrottle:    - Ensures hardware isn't flooded by rapid pulses
  * - #createIOSSwitchElement: - Prepares the hidden DOM element for iOS hack
@@ -26,27 +28,14 @@ import Library from './Library.js';
  */
 export class Haptic extends Library {
 
-    /** @type {boolean} Global toggle to mute/unmute haptics */
-    #enabled = true;
-    get enabled() { return this.#enabled; }
-    set enabled(flag) { this.#enabled = this.toBoolean(flag); }
-
-    /** @type {'android'|'ios'|'noop'} The detected hardware engine */
-    #engine = 'noop';
-    get engine() { return this.#engine; }
-
-    /** @type {boolean} Flag indicating if the system is armed and ready */
-    #active = false;
-    get active() { return this.#active; }
-
     /** @type {number} Timestamp of the last vibration triggered */
     #lastPulseTs = 0;
 
     /** @type {number} Minimum delay (ms) between pulses */
-    #minIntervalMs = 33;
     get intervalDelay() {
-        return this.#engine === 'ios' ? 50 : 33;
+        return this.engine === 'ios' ? 50 : 33;
     }
+
 
     /**
      * Creates a new Haptic instance and detects the platform.
@@ -54,18 +43,16 @@ export class Haptic extends Library {
      */
     constructor(parent = null) {
         super(parent);
-        this.#engine = this.#detectEngine();
-        this.log(`${this.#engine.toUpperCase()} engine initialized...`);
+        this.log(`${this.engine.toUpperCase()} engine initialized...`);
     }
 
     /**
      * Arms the haptic system. Must be called within a user-initiated event.
      */
     activate() {
-        if (this.#active) return;
-        this.#active = true;
-
-        if (this.#engine === 'ios') this.#createIOSSwitchElement();
+        if (this.enabled) return;
+        this.enabled = true;
+        if (this.engine === 'ios') this.#createIOSSwitchElement();
         this.log('Haptic system armed and ready for pulses.');
     }
 
@@ -75,7 +62,7 @@ export class Haptic extends Library {
      * @returns {boolean}
      */
     execute(effect) {
-        if (!this.#enabled || !this.#active) return false;
+        if (!this.enabled) return false;
 
         switch (effect) {
             case 'tick':
@@ -98,23 +85,23 @@ export class Haptic extends Library {
      * Immediately cancels any ongoing vibration (Android only).
      */
     stop() {
-        if (this.#engine === 'android') navigator.vibrate(0);
+        if (this.engine === 'android') navigator.vibrate(0);
         this.log('Stop signal sent.');
     }
 
-    /**
-     * Detects the environment and chooses the best engine.
-     * @private
-     * @returns {'android'|'ios'|'noop'}
-     */
-    #detectEngine() {
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-        if (isIOS) return 'ios';
-        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') return 'android';
-        return 'noop';
+    /**
+     * Terminates and removes the iOS-switch (hack)
+     */
+    terminate() {
+        if (this.engine === 'ios') {
+            if (this.element && this.element.parentNode) {
+                this.element.parentNode.removeChild(this.element);
+                this.element = null;
+            }
+        }
     }
+
 
     /**
      * Central pulse dispatcher.
@@ -126,17 +113,16 @@ export class Haptic extends Library {
     #pulse(pattern, label) {
         if (label === 'tick' && !this.#passThrottle()) return false;
 
-        this.log(`${this.#engine.toUpperCase()} → ${label.toUpperCase()} (${JSON.stringify(pattern)})`);
+        this.log(`${this.engine.toUpperCase()} → ${label.toUpperCase()} (${JSON.stringify(pattern)})`);
 
-        if (this.#engine === 'android')  return navigator.vibrate(pattern);
+        if (this.engine === 'android') return navigator.vibrate(pattern);
 
-        if (this.#engine === 'ios' && this.element) {
+        if (this.engine === 'ios' && this.element) {
             this.element.click(); // trigger the label for the iOS-checkbox
             return true;
         }
-
-        return false;
     }
+
 
     /**
      * Prevents the hardware from being overwhelmed.
@@ -161,23 +147,18 @@ export class Haptic extends Library {
         const id = `chkIOSHapticTrigger`;
         this.element = this.createElement('label', {
             htmlFor: id,
-            style: {display: 'none'}
+            style: { display: 'none' }
         });
 
         this.element.appendChild(
             this.createElement('input', {
                 type: 'checkbox',
                 id,
-                switch: 'true', // NOTE : this is important to make it work in iOS!
+                switch: 'true', // NOTE this is important to make it work in iOS!
             })
         );
 
-        const container = (this.parent && this.parent.rootElement)
-            ? this.parent.rootElement
-            : document.body;
-
-        container.appendChild(this.element);
-
+        document.body.appendChild(this.element);
         this.log('Hidden iOS Structure (Checkbox + Label) injected.');
     }
 }

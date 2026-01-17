@@ -4,6 +4,7 @@ import { ColorHandler } from './classes/ColorHandler.js';
 import { Calendar } from './classes/Calendar.js';
 import { Calculator } from './classes/Calculator.js';
 import { WheelPicker } from './classes/WheelPicker30.js';
+import { Haptic } from './classes/Haptic.js';
 import { LoadManager } from './classes/LoadManager.js';
 // import { AssetScanner } from './classes/AssetScanner.js';
 
@@ -18,14 +19,17 @@ document.addEventListener('input', globalEventHandler);
 document.addEventListener('overflow', globalEventHandler);
 
 // const msgbox = new MessageBox("Mal sehen, ob's läuft...", null, 'OK, Close, Load', true, true);
+const msgbox = new MessageBox({prompt: "Mal sehen, ob's läuft...", buttons: 'OK, Close, Load', closeButton: true});
 // msgbox.gradientFrom = 'white';
 // msgbox.fade = true;
 // msgbox.autoClose= 5;
 // msgbox.includeReadOnlyProperties = true;
-// const result = await msgbox.show();
+const result = await msgbox.show();
 const body = document.getElementById('demoBody');
 const colors = new ColorHandler(body);
 const lib = new Library();
+
+console.log(lib)
 
 document.addEventListener('DOMContentLoaded', run);
 
@@ -82,6 +86,7 @@ function showPicker() {
     const picker = new WheelPicker(this, {onCustomModeReturn: 'text'});
     picker.debugMode = $('chkDebugMode').checked;
     picker.haptic.debugMode = $('chkDebugMode').checked;
+
     // 1. Array:
     // picker.dataSource = ['Norway','Sweden','Germany','Switzerland','United Kingdom','Spain'];
 

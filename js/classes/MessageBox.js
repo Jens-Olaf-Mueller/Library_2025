@@ -157,9 +157,15 @@ export class MessageBox extends Library {
      * @param {Boolean} modal - Whether the dialog is modal.
      * @param {Boolean} closeButton - Whether the dialog includes a close button.
      */
-    constructor(prompt, title, buttons, modal, closeButton) {
+    constructor({prompt='', title=document.title, buttons=['Ok'], modal=true, closeButton=false} = {}) {
         super();
-        this.#setParams(prompt, title, buttons, modal, closeButton);
+        this.prompt = prompt;
+        this.title = title;
+        this.buttons = buttons;
+        this.modal = modal;
+        this.closeButton = closeButton;
+
+        // this.#setParams(prompt, title, buttons, modal, closeButton);
     }
 
     /**

@@ -37,6 +37,7 @@ import { OBJ_COMPONENTS } from '../constants.js';
  * - {@link setCSSProperty}       - sets a CSS custom property on :root or an element
  * - {@link getCSSProperty}       - reads a CSS custom property from :root or an element
  * - {@link renderUI}             - builds and appends the component DOM tree from `OBJ_COMPONENTS` (recursive builder)
+ * - {@link log}                  - global log system for debugging and component messages
  *
  * ---------------------------------------------------------------
  * II. Protected / Internal Methods
@@ -48,10 +49,19 @@ import { OBJ_COMPONENTS } from '../constants.js';
  * III. Private Methods
  * ---------------------------------------------------------------
  * - {@link #setElement()}          - resolves a DOM reference from an HTMLElement or an ID string
+ *
+ *  @version 2.1.0
  */
 export default class Library {
-
-    rootElement = null;
+    #rootElement = null;
+    /**
+     * Determines the root element (i.e. overlay) for a visual component
+     * @type {HTMLElement|null}
+     */
+    get rootElement() { return this.#rootElement; }
+    set rootElement(elmt) {
+        this.#rootElement = this.#setElement(elmt);
+    }
 
     #element = null;
     /**
@@ -63,7 +73,6 @@ export default class Library {
         this.#element = this.#setElement(expression);
     }
 
-
     #includeReadOnlyProperties = false; // default behaviour
     /**
      * Whether `.properties` should include read-only getters.
@@ -73,7 +82,6 @@ export default class Library {
     set includeReadOnlyProperties(flag) {
         if (typeof flag === 'boolean') this.#includeReadOnlyProperties = flag;
     }
-
 
     /**
      * Returns all readable and writable property names of this instance.
@@ -108,7 +116,7 @@ export default class Library {
     #parent = null;
     /**
      * Gets or sets the parent element of this instance.
-     * @type {HTMLElement | Class | null}
+     * @type {String | HTMLElement | Class | null}
      */
     get parent() { return this.#parent; }
     set parent(expression) {
@@ -132,11 +140,36 @@ export default class Library {
         return path.substring(0, path.lastIndexOf('/') + 1);
     }
 
+    /** @type {'ios'|'android'|'desktop'|null} */
+    static #detectedEngine = null;
+    /**
+     * Detects the current operating system/engine.
+     * Uses a static cache to avoid redundant parsing of the UserAgent.
+     * * @returns {'ios'|'android'|'desktop'}
+     */
+    get engine() {
+        if (Library.#detectedEngine) return Library.#detectedEngine;
+
+        const ua = navigator.userAgent || navigator.vendor || window.opera;
+
+        // iOS Detection (iPhone, iPad, iPod)
+        // NOTE  Modern iPads might report as "MacIntel", so we check for touch support.
+        if (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+            Library.#detectedEngine = 'ios';
+        } else if (/android/i.test(ua)) {
+            // Android Detection
+            Library.#detectedEngine = 'android';
+        } else {
+            // Fallback for Windows, macOS, Linux
+            Library.#detectedEngine = 'desktop';
+        }
+        return Library.#detectedEngine;
+    }
 
     #visible = false;
     /**
      * Controls component visibility.
-     * Automatically calls show()/hide() if available,
+     * Automatically calls show() / hide() if available,
      * and synchronizes with the 'hidden' DOM attribute.
      * @type {boolean}
      */
@@ -155,38 +188,56 @@ export default class Library {
         else if (!flag && typeof this.hide === 'function') this.hide();
     }
 
+    /** @type {boolean} Global toggle to mute / unmute haptics */
+    #enabled = false;
+    get enabled() { return this.#enabled; }
+    set enabled(flag) { this.#enabled = this.toBoolean(flag); }
+
 
     #debugMode = false || location.hostname === 'localhost' ||
                           location.hostname === '127.0.0.1' ||
                           location.hostname === '::1';
+    /**
+     * Determines the component's debug mode.
+     * By default it is switched off in web applications and on on locals hosts.
+     * @type {boolean}
+     */
     get debugMode() { return this.#debugMode; }
     set debugMode(flag) {
         this.#debugMode = this.toBoolean(flag);
     }
 
-
     /**
-     * Used in Method createElement()
+     * Provides a list of all HTML boolean attributes
+     * Used in Method {@link createElement()}
+     *
+     * REVIEW eventually we need to add 'switch' to the list for iOS
      */
     get booleanAttributes() {
-        return new Set(['disabled', 'checked', 'readonly', 'required', 'hidden',
-                        'multiple', 'selected', 'autofocus', 'open']
-        );
+        return new Set([
+            'disabled', 'checked', 'readonly', 'required', 'hidden',
+            'multiple', 'selected', 'autofocus', 'open'
+        ]);
     }
 
 
     /**
      * Creates a new base Library instance.
      * @constructor
+     * @param {string | HTMLElement | Class | null} parent parent of the instance
+     * - string:    → represents an ID for the parent element
+     * - HTML:      → element is the parent itself
+     * - Class:     → declares the parent class of a component
+     * - null:      → no parent set
      */
     constructor(parent = null) {
         this.parent = parent;
         this.DOM = {};
     }
 
-
     /**
-     * Assigns a valid HTMLElement or ID string as the main element reference.
+     * Resolves whether a given expression is meant to be an ID for an HTML element
+     * or the element itself. If an ID does not exist, 'null' is gonna be returned
      * @param {string|HTMLElement|null} expression
      * @returns {HTMLElement|undefined}
      */
@@ -194,11 +245,10 @@ export default class Library {
         if (!expression) return null;
 
         let elmt = null;
-        if (typeof expression === 'string') elmt = document.getElementById(expression);
+        if (typeof expression === 'string') elmt = $(expression);
         else if (expression instanceof HTMLElement) elmt = expression;
         return elmt || null;
     }
-
 
     /**
      * Dispatches a custom event with optional details.
@@ -222,7 +272,6 @@ export default class Library {
         return target.dispatchEvent(event);
     }
 
-
     /**
      * Determines whether a given object is an instance of any class
      * (user-defined or built-in), as opposed to a plain object.
@@ -231,22 +280,19 @@ export default class Library {
      */
     isClassInstance(object) {
         if (object == null || typeof object !== 'object') return false;
-
         const proto = Object.getPrototypeOf(object);
-        if (!proto) return false; // null prototype (Object.create(null))
-
+        // null prototype (Object.create(null)) and
         // plain object check: prototype is exactly Object.prototype
-        if (proto === Object.prototype) return false;
-
+        if (!proto || proto === Object.prototype) return false;
         // everything else that has a constructor is a class instance
         return typeof proto.constructor === 'function';
     }
 
-
     /**
      * Checks if an array contains only values of the given type
      * @param {Array} arr array to be checked
-     * @param {String} type  'string' | 'number' | 'boolean' | 'object' | 'array'
+     * @param {'string' | 'number' | 'boolean' | 'object' | 'array'} type the type of the checked array
+     * @see {@link Array.prototype.isTypeOf} Array.prototype-extention
      * @returns {Boolean} true | false
      */
     arrayIsTypeOf(arr, type = 'string') {
@@ -263,7 +309,6 @@ export default class Library {
             ? arr.every(map[type])
             : false;
     }
-
 
 	/**
 	 * Coerce heterogeneous "truthy" inputs into booleans.
@@ -285,7 +330,6 @@ export default class Library {
 		}
 		return false;
 	}
-
 
     /**
      * Transforms a given string into a specific case or object format.
@@ -336,14 +380,12 @@ export default class Library {
             case 'object': // "display:flex, flexDirection:column" → {display:'flex', flexDirection:'column'}
                 return Object.fromEntries(
                     str.split(',')
-                    .map(s => s.split(':').map(v => v.trim()))
-                );
+                    .map(s => s.split(':').map(v => v.trim())));
             default:
-                console.warn(`Library.stringTo(): Unknown mode '${mode}'`);
+                this.log(`Library.stringTo(): Unknown mode "${mode}"`, 'warn');
                 return str;
         }
     }
-
 
     /**
      * Creates or updates an element with attributes, properties and events.
@@ -418,22 +460,22 @@ export default class Library {
         return element;
     }
 
-
     /**
      * Sets a CSS custom property (variable) on the given target element.
      * If no target is specified, the variable will be applied globally (":root").
      * @param {string} name - The CSS variable name (must start with "--").
      * @param {string|number} value - The value to assign.
      * @param {HTMLElement|string} [target='root'] - Optional target element or "root".
+     * @returns {boolean} true | false depending on success or failure
      */
     setCSSProperty(name, value, target = 'root') {
-        if (typeof name !== 'string' || !name.startsWith('--')) return;
-        const elmt = target === 'root' ? document.documentElement :
-                    (target instanceof HTMLElement ? target : this.#element);
-        if (!elmt) return;
-        elmt.style.setProperty(name, String(value));
+        if (typeof name !== 'string') return false;
+        const cssVar = this.#cssNormalizeVariable(name),
+              elmt = this.#cssGetVarTarget(target);
+        if (!elmt) return false;
+        elmt.style.setProperty(cssVar, String(value));
+        return true;
     }
-
 
     /**
      * Returns the current value of a CSS custom property (variable).
@@ -443,25 +485,50 @@ export default class Library {
      * @returns {string|undefined} The variable value, or undefined if not found.
      */
     getCSSProperty(name, target = 'root') {
-        // REVIEW : !name.startsWith('--') ???
-        if (typeof name !== 'string' || !name.startsWith('--')) return undefined;
-        const elmt = target === 'root' ? document.documentElement :
-                    (target instanceof HTMLElement ? target : this.#element);
+        if (typeof name !== 'string') return undefined;
+        const cssVar = this.#cssNormalizeVariable(name),
+              elmt = this.#cssGetVarTarget(target);
         if (!elmt) return undefined;
         const style = getComputedStyle(elmt);
-        return style.getPropertyValue(name)?.trim() || undefined;
+        return style.getPropertyValue(cssVar)?.trim() || undefined;
+    }
+
+    /**
+     * Makes sure that we get or set a valid CSS variable name
+     * @param {string} name CSS variable name to be normalized
+     * @returns {string} a valid CSS-varname
+     */
+    #cssNormalizeVariable(name) {
+        return name.startsWith('--') ? name.trim() : `--${name.trim()}`;
+    };
+
+    /**
+     * Determines where a CSS variable is located:
+     * On the specified target or globally from ":root".
+     * @param {HTMLElement|string} [target='root'] - Optional target element or "root"
+     * @returns {HTMLElement|undefined}
+     */
+    #cssGetVarTarget(target = 'root') {
+        return target === 'root'
+            ? document.documentElement
+            : (target instanceof HTMLElement ? target : this.#element);
     }
 
     /**
      * Internal logging helper
-     * @param {string} expression
+     * @param {string} expression the expression to be logged out
+     * @param {'log'|'warn'|'error'|'info'|'dir'|'table'|'assert'|'time'|'trace'|'count'} method the console method to be executed
+     * @param {boolean} bold determines whether expression is printed bold or not
      */
-    log(expression, bold = false) {
+    log(expression, method = 'log', bold = false) {
         if (this.debugMode) {
             if (this.isClassInstance(expression) || typeof expression === 'object') {
                 console.log(expression);
             } else if (typeof expression === 'string') {
-                const component = this.constructor.name;
+                method = method.toLowerCase();
+                const methods = ['log','warn','error','info','dir','table','assert','time','trace','count']
+                const component = this.constructor.name || null;
+                const isError = (method === 'error');
                 const color = {
                     WheelPicker: '#ffff00',
                     Calculator:  '#ff6347',
@@ -469,15 +536,21 @@ export default class Library {
                     Calendar:    '#00ffff',
                     Haptic:      '#00ff00'
                 }
-                let style = `color: ${color[component] || '#666'};`;
-                style += (bold || color[component] === undefined) ? ' font-weight: bold;' : '';
-                console.log(`%c[${component}] ${expression}`, style);
+                let style = isError ? 'color: #ff0000;': `color: ${color[component] || '#666'};`;
+                style += (bold || color[component] === undefined) && !isError ? ' font-weight: bold;' : '';
+
+                if (methods.includes(method)) {
+                    if (component) console.group(`%c${component}`, style);
+                    console[method](`%c${expression}`, style);
+                    if (component) console.groupEnd();
+                } else {
+                    // fallback
+                    console.log(`%c[${component}] ${expression}`, style);
+                }
             }
         }
     }
 
-    // REVIEW
-    // ATTENTION  !
    /**
      * Recursively creates all DOM elements for the current component
      * using the hierarchical definition from OBJ_COMPONENTS.
@@ -504,20 +577,19 @@ export default class Library {
             // Determine ID (optional)
             let id;
             if ('id' in node) {
-                // id explizit gesetzt
+                // ID explicitly set
                 if (node.id === '') {
-                    // Auto-ID NUR, wenn ein element-Name vorhanden ist
+                    // Generate auto-ID only if an element name is present!
                     if (node.element) {
                         const prefix = node.prefix || node.tag.slice(0, 3);
                         id = `${prefix}${node.element}`;
                     }
-                    // sonst: keine ID – für Loop-Attr-Knoten ohne element
                 } else if (node.id != null) {
                     // explizite ID (non-null, non-undefined)
                     id = node.id;
                 }
             } else if (node.element) {
-                // Kein id-Key, aber ein element-Name → klassische Auto-ID
+                // No ID key, but an element name → classic auto-ID
                 const prefix = node.prefix || node.tag.slice(0, 3);
                 id = `${prefix}${node.element}`;
             }
@@ -560,7 +632,7 @@ export default class Library {
                             // Direct function → bind context
                             elmt.addEventListener(evt, fn.bind(this));
                         } else {
-                            console.warn(`Invalid handler for '${evt}' in '${id}'`);
+                            this.log(`Invalid handler for "${evt}" in "${id}"`, 'warn');
                         }
                     };
                     if (Array.isArray(handler)) {
@@ -586,7 +658,7 @@ export default class Library {
                 const baseClass = node.loop.className ?? node.loop.class ?? '';
                 const LOOP_META = ['tag', 'id', 'class', 'className', 'splitter', 'elements'];
 
-                // Alle dynamischen Mappings: key → index oder key → literal
+                // All dynamic mappings: key → index or key → literal
                 const mappings = Object.entries(node.loop).filter(([key]) => !LOOP_META.includes(key));
 
                 elements.forEach((entry, index) => {
@@ -595,27 +667,20 @@ export default class Library {
                         typeof str === 'string' ? str.replace(/\$\{#\}/g, String(index)) : str;
                     const attrs = {tag, class: baseClass };
 
-                    // ID-Behandlung im Loop: nur gültige ID-Strings mit '${#}' erzeugen eine ID
+                    // ID processing in the loop: only valid ID strings with “${#}” generate an ID
                     if (typeof loopId === 'string' && loopId.length) {
-                        if (loopId.includes('${#}')) {
-                            attrs.id = resolvePlaceholders(loopId);
-                        // } else { // invalid ID pattern! No ID created!
-                        //     console.warn(
-                        //         `[Library.renderUI] Ignoring loop.id "${loopId}".` +
-                        //         'Placeholder "${#}" is missed!'
-                        //     );
-                        }
+                        if (loopId.includes('${#}')) attrs.id = resolvePlaceholders(loopId);
                     }
 
-                    // Dynamische Zuordnungen (inkl. data*, classList, events, etc.)
+                    // Dynamic assignments (incl. data*, classList, events, etc.)
                     for (const [mapKey, rawDescriptor] of mappings) {
-                        // Meta-Keys rausfiltern (haben wir oben schon, aber sicherheitshalber)
+                        // filter meta-keys once more for safety reasons
                         if (LOOP_META.includes(mapKey)) continue;
                         let value;
                         if (Number.isInteger(rawDescriptor)) {
                             value = parts[rawDescriptor]; // Index in parts[]
                         } else {
-                            // Literal (z. B. '${#}', '${#} mm', 'fixerText')
+                            // Literal (i.e. '${#}', '${#} mm', 'fixerText')
                             value = resolvePlaceholders(rawDescriptor);
                         }
 
@@ -670,22 +735,21 @@ export default class Library {
      * - Applies inline styles for elements marked with data-protected="true"
      * - Cleans up markers afterwards
      *
-     * @private
      */
     _injectCSS() {
         const ctorName = this.constructor.name.toLowerCase();
         const component = OBJ_COMPONENTS[ctorName];
         if (!component) {
-            console.warn(`_injectCSS(): no component definition for '${ctorName}'`);
+            this.log(`_injectCSS(): no component definition for "${ctorName}"`, 'warn');
             return;
         }
 
-        // 1️⃣ Retrieve CSS metadata
+        // Retrieve CSS metadata
         const cssInfo = component.css || {};
         const prefix = cssInfo.prefix || ctorName.slice(0, 3);
         const variables = Array.isArray(cssInfo.variables) ? cssInfo.variables : [];
 
-        // 2️⃣ Create CSS variable definitions
+        // Create CSS variable definitions
         const varLines = variables.map(obj => {
             const [key, value] = Object.entries(obj)[0];
             // convert e.g. backgroundColor → background-color
@@ -693,9 +757,10 @@ export default class Library {
             return `--${prefix}-${kebab}: ${value};`;
         });
 
-        // 3️⃣ Inject CSS variables into <style> (if not already present)
-        const styleId = `${prefix}Style`;
-        if (!$(`#${styleId}`)) {
+        // Inject CSS variables into <style> (if not already present)
+        const styleId = `${prefix}StyleSheet`;
+        const styleSheetExists = ($(styleId) !== null);
+        if (!styleSheetExists) {
             const styleElmt = this.createElement('style', {
                 id: styleId,
                 textContent: `:root {\n  ${varLines.join('\n  ')}\n}`
@@ -703,29 +768,33 @@ export default class Library {
             document.head.appendChild(styleElmt);
         }
 
-        // 4️⃣ Apply inline styles for protected elements
-        const protectedElements = document.querySelectorAll('[data-protected="true"]');
+        // Apply inline styles for protected elements
+        const protectedElements = $('[data-protected="true"]', true);
 
         protectedElements.forEach(elmt => {
-            // Beispiel: minimale optische Sicherheit für Layouts
-            // Diese Styles sind nur Platzhalter, du kannst sie anpassen.
             const inlineDefaults = {
                 boxSizing: 'border-box',
                 position: elmt.style.position || 'relative'
             };
             Object.assign(elmt.style, inlineDefaults);
 
-            // 🧹 remove marker after styling
+            // remove marker after styling
             elmt.removeAttribute('data-protected');
         });
 
-        // 5️⃣ Optional: Log confirmation (useful during dev)
-        this.log(`_injectCSS():
-    Applied ${variables.length} new CSS variables "--${prefix}-..." in:
-        <style id="${styleId}">
-    ${protectedElements.length} protected elements styled.`);
+        // Log confirmation (useful during dev)
+        if (!styleSheetExists) {
+            this.log(`_injectCSS():
+                ${protectedElements.length} protected elements styled.
+                Applied ${variables.length} new CSS "--${prefix}-..." variables to:
+                <style id="${styleId}">`.replace(/^[ \t]+/gm, '')
+                // NOTE regEx removes tabs + spaces in template string!
+            );
+        }
     }
-}
+} // END: Class
+
+
 
 /**
  * Extends the Array prototype.
@@ -745,12 +814,12 @@ Array.prototype.isTypeOf = function(type) {
         function: v => typeof v === 'function',
         array:    v => Array.isArray(v),
         object:   v => v !== null && typeof v === 'object' && Object.prototype.toString.call(v) === '[object Object]',
-        class:    (v) => {
+        class:    v => {
             if (v == null || typeof v !== 'object') return false;
             const proto = Object.getPrototypeOf(v);
-            if (!proto) return false; // null prototype (Object.create(null))
-            // plain object check: prototype is exactly Object.prototype
-            if (proto === Object.prototype) return false;
+            // null prototype? (Object.create(null))
+            // check for plain object: prototype is exactly Object.prototype
+            if (!proto || proto === Object.prototype) return false;
             // everything else that has a constructor is a class instance
             return typeof proto.constructor === 'function';
         }

@@ -16,9 +16,10 @@
 
     <button id="btn-activate" style="background: #ffecb3;">1. ACTIVATE SYSTEM</button>
     <hr style="width: 100%;">
-    <button id="btn-tick">Trigger TICK</button>
-    <button id="btn-error">Trigger ERROR</button>
-    <button id="btn-whoosh">Trigger WHOOSH</button>
+    <button id="btn-tick">TICK</button>
+    <button id="btn-error">ERROR</button>
+    <button id="btn-whoosh">WHOOSH</button>
+    <button id="btn-scroll">SCROLL</button>
 
     <script type="module">
         import { Haptic } from './js/classes/Haptic.js'; // Pfad anpassen!
@@ -42,6 +43,15 @@
 
         document.getElementById('btn-whoosh').addEventListener('click', () => {
             haptic.execute('whoosh');
+        });
+
+        document.getElementById('btn-scroll').addEventListener('click', () => {
+            let count = 0;
+            const id = setInterval(() => {
+                haptic.execute('tick');
+                count++;
+                if (count === 10) clearInterval(id);
+            }, 250);
         });
     </script>
 </body>

@@ -367,11 +367,11 @@ export class WheelPicker extends Library {
     show() {
         if (this.#overlay) return; // already open
         this.renderUI(document.body, true);
+        this.haptic.activate();
         this.#overlay = this.DOM.divWheelOverlay; // Cache overlay root
         this.DOM.spnWheelTitle.textContent = this.title; // assign the title
         this.#columns = Array.from(this.DOM.divWheelTrack.querySelectorAll('.wheel-column'));
         this.visible = this.initWheels(this.mode);
-        this.haptic.activate();
         this.log(this);
     }
 
@@ -461,16 +461,14 @@ export class WheelPicker extends Library {
             // no data available for the WheelPicker!
             // set the focus to the input element!
             if (!this.visible) {
-                // REMOVE
-                this.haptic.activate();
-                this.haptic.error();
-                console.warn('[WheelPicker.hide] Remove haptics here!');
-                // REMOVE
                 this.input.removeAttribute('readonly');
                 this.input.focus();
             }
         }
-        if (this.haptic) this.haptic.stop();
+        if (this.haptic) {
+            this.haptic.stop();
+            this.haptic.terminate();
+        }
         this.#overlay.remove();
         this.#overlay = null;
         this.#columns = [];
@@ -675,7 +673,6 @@ export class WheelPicker extends Library {
             // correct if current day is greater than days of the month
             if (dayWheel.value > lastDayOfMonth) dayWheel.snapToValue(lastDayOfMonth);
         }
-        // this.haptic.tick();
     }
 
 

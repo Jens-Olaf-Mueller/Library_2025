@@ -205,24 +205,6 @@ export class Wheel extends ListGenerator {
      * Ermittelt aus scrollTop den virtuellen Index der aktiven Zeile,
      * berechnet den "echten" Index und wendet 3D-Transform + Active-Klasse an.
      */
-    // #updateFromScroll() {
-    //     const scrollTop = this.column.scrollTop;
-    //     const rawIndex  = scrollTop / this.itemHeight;
-
-    //     // Virtueller Index der Zeile im Auswahlfenster
-    //     let activeVirtual = Math.round(rawIndex + this.centerOffset);
-    //     activeVirtual = Math.max(0, Math.min(this.itemsCount - 1, activeVirtual));
-    //     this.activeVirtualIndex = activeVirtual;
-
-    //     // "Echter" Index (0..baseItemsCount-1)
-    //     const realIndex = ((activeVirtual % this.baseItemsCount) + this.baseItemsCount) % this.baseItemsCount;
-    //     this.valueIndex = realIndex;
-
-    //     // → genau HIER den 3D-Helper aufrufen
-    //     this.#apply3DEffect();
-    // }
-
-
     #updateFromScroll() {
         const scrollTop = this.column.scrollTop;
         const rawIndex  = scrollTop / this.itemHeight;
@@ -230,16 +212,14 @@ export class Wheel extends ListGenerator {
         let activeVirtual = Math.round(rawIndex + this.centerOffset);
         activeVirtual = Math.max(0, Math.min(this.itemsCount - 1, activeVirtual));
 
-        // NEU: Nur wenn der Index sich wirklich geändert hat!
+        // Nur wenn der Index sich wirklich geändert hat!
         if (this.activeVirtualIndex !== activeVirtual) {
             this.activeVirtualIndex = activeVirtual;
-
-            // HIER DER TICK:
-            if (this.haptic) this.haptic.execute('tick');
-
             const realIndex = ((activeVirtual % this.baseItemsCount) + this.baseItemsCount) % this.baseItemsCount;
             this.valueIndex = realIndex;
             this.#apply3DEffect();
+            // allpy possible haptic effect
+            if (this.haptic) requestAnimationFrame(() => this.haptic.execute('tick'));
         }
     }
 
@@ -408,9 +388,6 @@ export class Wheel extends ListGenerator {
         }, smooth ? 180 : 0);
     }
 
-    // =================================================================================
-    // =====                            PRIVATE HELPERS                            =====
-    // =================================================================================
 
     #loadWheel(role) {
         const whlConfig = this._getWheelConfig(role);

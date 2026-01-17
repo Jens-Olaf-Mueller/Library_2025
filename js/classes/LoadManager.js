@@ -43,7 +43,7 @@ export class LoadManager extends Library {
      * @param {boolean} [options.text=false]    - Skip text/md files in progress.
      * @param {number}  [options.delay=200]     - delay time to skip the display of the progress element
      */
-    constructor({autoInit = true, styles = false, scripts = false, markup = false, text = false, delay = 200 } = {},
+    constructor({autoInit = true, styles = false, scripts = false, markup = false, text = false, delay = 200} = {},
                  element = null, parent = null) {
         super(parent);
         this.element = element;
