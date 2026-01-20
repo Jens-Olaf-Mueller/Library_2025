@@ -1,49 +1,58 @@
 import { NOT_FOUND } from '../constants.js';
 
 /**
- * =================================================================
- * ListGenerator — Generic list/collection helper for wheel-based UI
- * =================================================================
+ * ListGenerator — parent class for {@link Wheel}
+ * ===============================================================
  *
- * Provides a reusable abstraction around a single <ul> element and its
- * <li> children. It exposes a small, VB6-Collection–like API that is used
- * by higher-level components (notably Wheel) to generate, access, and
- * manage list items in a consistent way.
+ * Lightweight helper that manages a list (<ul>) inside a given column element.
+ * It creates, appends, queries, and removes <li> items and exposes convenience
+ * getters for item access, active item detection, and value parsing.
  *
- * The class itself is UI-agnostic: it does not implement scrolling,
- * snapping, or interaction logic. Its sole responsibility is structured
- * creation, lookup, and removal of list items, plus delegation to
- * role-specific wheel configuration builders.
+ * The class is designed to be used by a wheel/spinner component:
+ * - items use the CSS class `wheel-item`
+ * - the active item is identified by `.wheel-item--active`
+ * - item identity is stored in `data-item` and `value`
  *
- * Core responsibilities:
- * - manage a <ul> element and its <li> children
- * - provide indexed and text-based lookup
- * - create list items in a consistent, overridable way
- * - expose wheel configuration factories used by Wheel
+ * Notes:
+ * - `createElement` is expected to be provided/injected (e.g. from a shared Library factory).
+ * - `stringTo` can optionally be injected via constructor `options` and is used for custom wheel captions.
  *
  * ---------------------------------------------------------------
- * I. Public Methods
+ * I. Public API
  * ---------------------------------------------------------------
- * addItem:             - creates and appends a new <li> item to the list
- * removeItem:          - removes an item by index or text key
- * getItem:             - retrieves an item by numeric index or text content
- * clear:               - removes all items from the list
+ *
+ * - {@link column}               - read-only reference to the owning column container
+ * - {@link list}                 - shorthand reference to the underlying <ul>
+ * - {@link items}                - array of current <li> elements
+ * - {@link itemsCount}           - number of list items
+ * - {@link activeItem}           - currently active <li> ('.wheel-item--active') or null
+ * - {@link value}                - parsed value of the active item (number if numeric; otherwise raw string)
+ *
+ * - {@link addItem}              - creates and appends a new <li> item (optionally at an index)
+ * - {@link removeItem}           - removes an item by index or by exact text match
+ * - {@link getItem}              - returns an item by index or by exact text match
+ * - {@link clear}                - removes all items from the list
  *
  * ---------------------------------------------------------------
- * II. Private / Internal Methods
+ * II. Internal / Helper Methods
  * ---------------------------------------------------------------
- * _createListItem:     - creates a single <li> element with value, text and attributes
- * _getWheelConfig:     - dispatches to the appropriate wheel-config builder by role
+ * - {@link _createListItem}       - creates a wheel <li> element via `createElement()`
+ * - {@link _getWheelConfig}       - resolves a wheel configuration by role
  *
- * #buildSpinWheel:     - builds configuration for numeric spinner wheels
- * #buildDecimalWheel: - builds configuration for decimal/hour-based wheels
- * #buildHoursWheel:   - builds configuration for hour wheels (0–23)
- * #buildMinutesWheel: - builds configuration for minute wheels with padding logic
- * #buildDateWheel:    - builds configuration for day/month/year wheels
- * #buildCustomWheel:  - builds configuration for custom data sources (array, CSV, object)
- * #coerceValue:       - normalizes incoming active values per role before building configs
+ * ---------------------------------------------------------------
+ * III. Private Methods
+ * ---------------------------------------------------------------
+ * - {@link #buildSpinWheel}       - builds values/format for a numeric spinner wheel (supports open-ended max)
+ * - {@link #buildDecimalWheel}    - builds values/format for decimal-hours wheel (minutes-based)
+ * - {@link #buildHoursWheel}      - builds values/format for hours (00–23)
+ * - {@link #buildMinutesWheel}    - builds values/format for minutes (0–59, step-based, optional padding)
+ * - {@link #buildDateWheel}       - builds values/format for day/month/year
+ * - {@link #buildCustomWheel}     - builds values/format for custom data sources (array/string/object)
+ * - {@link #coerceValue}          - normalizes the active value based on wheel role constraints
+ *
+ * @version 1.0.1
  */
-export class ListGenerator {
+export class WheelGenerator {
 
     createElement;
 
@@ -57,32 +66,29 @@ export class ListGenerator {
 	 */
 	get list() { return this.#list; }
 
-
 	/**
 	 * Array of <li> items (this.list.children).
 	 * @returns {HTMLCollectionOf<HTMLLIElement>}
 	 */
-	get items() {
-		return this.list ? Array.from(this.list.children) : [];
-	}
-
+	get items() { return this.list ? Array.from(this.list.children) : []; }
 
 	/**
 	 * Number of items currently in the list.
 	 * @returns {number}
 	 */
-	get itemsCount() {
-		return this.list ? this.items.length : 0;
-	}
+	get itemsCount() { return this.list ? this.items.length : 0; }
 
+    /**
+     * Returns the current active item.
+     * @returns {HTMLLIElement|null}
+     */
+    get activeItem() { return this.list.querySelector('.wheel-item--active') || null; }
 
-    get activeItem() {
-        return this.list.querySelector('.wheel-item--active') || null;
-    }
-
-
+    /**
+     * Returns the current value of a wheel.
+     * @returns {number|string|undefined} a numeric value or a numeric string or undefined
+     */
     get value() {
-        // return this.activeItem ? this.activeItem.value: undefined;
         if (this.activeItem) {
             const strVal = this.activeItem.getAttribute('value'),
                   value = strVal.replace(',','.');
@@ -93,16 +99,18 @@ export class ListGenerator {
     }
 
 
+    /**
+     * @constructor ListGenerator
+     * @param {HTMLElement | Class | null} column column that contains the actual <ul> list element
+     * @param {object} [options] optional config
+     * @param {function} [options.stringTo] Library function to convert string formats
+	 */
 	constructor(column, options) {
         this.#column = column;
 		this.#list = column.firstChild;
         if ('stringTo' in options) this.stringTo = options.stringTo;
 	}
 
-
-	// ---------------------------------------------------------------------
-	// Collection-API
-	// ---------------------------------------------------------------------
 
 	/**
 	 * Adds a new <li> item at the end of the list.
@@ -124,7 +132,6 @@ export class ListGenerator {
 		return li;
 	}
 
-
 	/**
 	 * Removes an item by index or by text key.
 	 *
@@ -140,7 +147,6 @@ export class ListGenerator {
 		this.list.removeChild(item);
 		return true;
 	}
-
 
 	/**
 	 * Returns an item by index or by text key.
@@ -166,7 +172,6 @@ export class ListGenerator {
 		return undefined;
 	}
 
-
 	/**
 	 * Removes all items from the list.
 	 */
@@ -176,11 +181,10 @@ export class ListGenerator {
 		}
 	}
 
-
     /**
      * Private helper function.
      * // REVIEW attributes may overwrite core keys eventually
-     *           solution: later allow "style" key only
+     *           solution: later allow "style" key only in attributes object
      *
      * Creates a list item for a wheel. Used from #loadWheels()
      * and when an endless spin requires a new item
@@ -198,7 +202,11 @@ export class ListGenerator {
         }, attributes));
     }
 
-
+    /**
+     * Creates the configuration for the current wheel (child class)
+     * @param {'spin'|'decimal'|'hours'|'minutes'|'day'|'month'|'year'|'custom'} role string value
+     * @returns {object} the wheel configuration
+     */
     _getWheelConfig(role) {
         switch (role) {
             case 'spin':  return this.#buildSpinWheel();
@@ -213,11 +221,6 @@ export class ListGenerator {
                 console.warn(`[Wheel.#getWheelConfig]: illegal role "${role}"`);
         }
     }
-
-
-    // ---------------------------------------------------------------------
-	// Private helpers
-	// ---------------------------------------------------------------------
 
     #buildSpinWheel() {
         const EPS = 1e-9;
@@ -252,7 +255,6 @@ export class ListGenerator {
         };
     }
 
-
     #buildDecimalWheel() {
         const min = Math.round(this.min * 60);
         const max = Math.round(this.max * 60);
@@ -269,7 +271,6 @@ export class ListGenerator {
         };
     }
 
-
     #buildHoursWheel() {
         const hours = [];
 
@@ -283,7 +284,6 @@ export class ListGenerator {
             format: (n) => String(n).padStart(2, '0')
         };
     }
-
 
     #buildMinutesWheel() {
         let minutes = [];
@@ -314,7 +314,6 @@ export class ListGenerator {
         };
     }
 
-
     #buildDateWheel(role) {
         const values = [];
         const year = new Date().getFullYear() - 50;
@@ -335,7 +334,6 @@ export class ListGenerator {
             }
         };
     }
-
 
     #buildCustomWheel(data) {
         let values = [], captions = null;
@@ -362,7 +360,6 @@ export class ListGenerator {
         if (captions) wheelConfig.captions = captions; //assign only when data is an object
         return wheelConfig;
     }
-
 
     #coerceValue(role) {
         switch (role) {

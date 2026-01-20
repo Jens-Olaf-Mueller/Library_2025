@@ -79,7 +79,6 @@ export class Calendar extends Library {
     #_collapsible = null;  // NEW: ref to wrapper
     #_dropBtn = null;      // NEW: ref to arrow button
 
-    // ################################################################################################################
 
     constructor(date = new Date(), parent = document.body, init = { country: 'de-CH', state: 'Zug' }) {
         super(parent);
@@ -97,20 +96,6 @@ export class Calendar extends Library {
         this.#showFullDate(date);
         console.log(this);
     }
-
-    // ------------------ Public API ------------------
-
-    /** Show or re-render calendar */
-    // show(date) {
-    //     if (date) this.currentDate = date;
-    //     if (!this.created) this.renderUI(this.parent);
-    //     this.update();
-    // }
-
-    // /** Destroy calendar DOM */
-    // hide() {
-    //     this.DOM.divCalendarPod?.remove();
-    // }
 
     /**
      * Render current month into calendar body grid
@@ -294,7 +279,6 @@ export class Calendar extends Library {
         localStorage.setItem('CalendarSettings', JSON.stringify(data));
     }
 
-
     onHeaderClick(e) {
         const btn = e.target.closest('button');
         if (!btn || !this.DOM.divCalendarHead.contains(btn)) return;
@@ -316,7 +300,6 @@ export class Calendar extends Library {
             week: this.getISOWeek(this.currentDate),
         });
     }
-
 
     updateStates(e) {
         const keyObj = (e instanceof Event) ? OBJ_HOLIDAYS[e.target.value] : OBJ_HOLIDAYS[e];
@@ -393,8 +376,6 @@ export class Calendar extends Library {
         //synchronisze input event for possible form handling
         this.DOM.inpCalendarFooter.dispatchEvent( new Event('input', { bubbles: true }) );
     }
-
-    // ------------------ Helpers ------------------
 
     #startOfWeek(date) {
         const d = new Date(date);

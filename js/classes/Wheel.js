@@ -1,4 +1,4 @@
-import { ListGenerator } from './ListGenerator.js';
+import { WheelGenerator } from './WheelGenerator.js';
 import { NOT_FOUND } from '../constants.js';
 
 /**
@@ -27,7 +27,7 @@ import { NOT_FOUND } from '../constants.js';
  * ---------------------------------------------------------------
  * II. Private Methods
  * ---------------------------------------------------------------
- * {@link #init}               - initializes wheel state, renders items, measures layout, attaches events, sets initial position
+ * {@link #init}                - initializes wheel state, renders items, measures layout, attaches events, sets initial position
  * #cloneItems:         - creates the virtual item set (wrap clones or finite dummies) and replaces list DOM
  * #measure:            - measures item height, visible row count, center offset, and block size for recentering
  * #attachEvents:       - attaches scroll and click event handlers to column/list
@@ -42,7 +42,7 @@ import { NOT_FOUND } from '../constants.js';
  * #loadWheel:          - loads the role config, creates list items, and sets the start index for initial selection
  * #doHaptic:           - placeholder hook for haptic feedback integration
  */
-export class Wheel extends ListGenerator {
+export class Wheel extends WheelGenerator {
     #snapTimer = null; // Intern: Timer zum Erkennen von "Scroll-Ende"
     #isSnapping = false;
     #blocks = 3;
@@ -217,12 +217,13 @@ export class Wheel extends ListGenerator {
             this.activeVirtualIndex = activeVirtual;
             const realIndex = ((activeVirtual % this.baseItemsCount) + this.baseItemsCount) % this.baseItemsCount;
             this.valueIndex = realIndex;
+            // INFO:  .
+            // REVIEW requestAnimationFrame(() => this.#apply3DEffect()); ???
             this.#apply3DEffect();
-            // allpy possible haptic effect
-            if (this.haptic) requestAnimationFrame(() => this.haptic.execute('tick'));
+            // apply possible haptic effect
+            if (this.haptic && this.#initDone) this.haptic.execute('tick');
         }
     }
-
 
     #apply3DEffect() {
         const {

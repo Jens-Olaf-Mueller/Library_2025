@@ -13,6 +13,11 @@ import path from 'node:path';
  * 1. LoadManager: For precise UI progress tracking.
  * 2. ServiceWorker: For automated offline asset caching.
  *
+ * ---------------------------------------------------------------
+ * I. Public Methods
+ * ---------------------------------------------------------------
+ * {@link scan}                - scans all files from the rootPath property and generates the output .json file
+ *
  * @example     import AssetScanner from './js/classes/AssetScanner.mjs';
  * const scanner = new AssetScanner({ path: './', markup: true, scripts: true });
  * scanner.scan();

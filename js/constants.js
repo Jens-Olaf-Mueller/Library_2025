@@ -3,14 +3,22 @@
  * Each top-level key corresponds to a component class name (lowercase).
  * Every subkey represents one DOM element belonging to that component.
  *
- * Conventions:
+ * Conventions for attributes:
+ *  - id not present        → ID is either going to be created from key "prefix" or the first three chars from HTML tag
+ *  - id = null             → no ID at all!!!
  *  - class = ''            → derive class from element id (converted to kebab-case)
- *  - class = null          → no class attribute at all
- *  - parent = null         → root element of the component
- *  - parent = undefined    → element is not automatically attached
- *  - parent = "id"         → id of the parent element within the same template
- *  - dataset = undefined   → no data-* attributes created
- *  - style keys use camelCase, values are strings (CSS values)
+ *  - style                 → keys use camelCase, values are strings (CSS values)
+ *
+ * Special keys:
+ *  - root:                 → defines the root element of the component
+ *  - protected:            → defines that the style of the element is inline set (top most specifity)
+ *  - events:               → { eventname: 'handlerFunction }
+ *  - children:             → { object of child elements }
+ *  - loop:                 → { object of similar child elements }
+ *  - elements:             → [ String array representing each elements' properties (caption, value, classlist etc.)]
+ *  - splitter:             → inside a loop used to determine element properties.
+ *                            a numeric value for a key represents the index of the array
+ *                            created by the splitter
  */
 export const OBJ_COMPONENTS = {
     calendar: {
@@ -29,7 +37,7 @@ export const OBJ_COMPONENTS = {
                 root: true,  // Root container of the calendar !!!
                 protected: true,
                 children: [
-                    // ▼ Drop-Button (immer sichtbar, top-right)
+                    // ▼ Drop button (always visible, top-right)
                     {
                         element: 'CalendarDrop',
                         tag: 'button',
@@ -49,13 +57,13 @@ export const OBJ_COMPONENTS = {
                             zIndex: 999
                         },
                         protected: true,
-                        events: { click: 'toggleOpen' }, // ruft später this.toggleOpen() oder Setter auf
+                        events: { click: 'toggleOpen' }, // calls this.toggleOpen()
                         innerHTML: `
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="calendar-drop-arrow">
                             <path d="M20 35 l30 30 l30-30z"/>
                         </svg>`
                     },
-                    // ▼ Settings Icon (immer sichtbar, top-left)
+                    // ▼ Settings icon (always visible, top-left)
                     {
                         element: 'CalendarSettings',
                         tag: 'button',
@@ -81,7 +89,7 @@ export const OBJ_COMPONENTS = {
                             <path d="M24 13.616v-3.232c-1.651-.587-2.694-.752-3.219-2.019v-.001c-.527-1.271.1-2.134.847-3.707l-2.285-2.285c-1.561.742-2.433 1.375-3.707.847h-.001c-1.269-.526-1.435-1.576-2.019-3.219h-3.232c-.582 1.635-.749 2.692-2.019 3.219h-.001c-1.271.528-2.132-.098-3.707-.847l-2.285 2.285c.745 1.568 1.375 2.434.847 3.707-.527 1.271-1.584 1.438-3.219 2.02v3.232c1.632.58 2.692.749 3.219 2.019.53 1.282-.114 2.166-.847 3.707l2.285 2.286c1.562-.743 2.434-1.375 3.707-.847h.001c1.27.526 1.436 1.579 2.019 3.219h3.232c.582-1.636.75-2.69 2.027-3.222h.001c1.262-.524 2.12.101 3.698.851l2.285-2.286c-.744-1.563-1.375-2.433-.848-3.706.527-1.271 1.588-1.44 3.221-2.021zm-12 2.384c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4z"/>
                         </svg>`
                     },
-                    // ▼ Collapsible Wrapper
+                    // ▼ Collapsible wrapper
                     {
                         element: 'CalendarCollapsible',
                         tag: 'div',
@@ -249,7 +257,7 @@ export const OBJ_COMPONENTS = {
                             },
                         ]
                     },
-                    // ▼ Footer bleibt außerhalb des Collapsibles
+                    // ▼ Footer remains outside of the collapsibles
                     {
                         element: 'CalendarFooter',
                         tag: 'input',
@@ -491,7 +499,6 @@ export const OBJ_COMPONENTS = {
                                         gap: '0.25rem',
                                         alignItems: 'stretch',
                                         justifyContent: 'center',
-                                        // padding: '0.25rem 0'
                                     },
                                     children: {
                                         element: 'WheelSelectionWindow',
@@ -584,4 +591,4 @@ export const OBJ_COMPONENTS = {
     }
 };
 
-export const NOT_FOUND = -1; // flag for array-methods that indicates an indes has not been found
+export const NOT_FOUND = -1; // flag for array-methods that indicates an index has not been found

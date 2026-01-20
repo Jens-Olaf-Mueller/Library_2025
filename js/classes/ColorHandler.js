@@ -2,37 +2,70 @@ import Library from './Library.js';
 import { CSS_COLORS } from '../css_colors.js';
 
 /**
- * @classdesc
- * The ColorHandler class provides a unified interface for parsing, converting,
- * and analyzing colors in various formats (HEX, RGB(A), HSL(A), arrays, objects, or CSS color names).<br>
- * It can automatically detect color types, calculate luminance, brightness, contrast ratio,
- * and determine the best fitting text color for a given background.
- * <br><br>
- * The class also includes optional strict validation mode (strictMode) to control
- * whether invalid colors return undefined or a fallback value.
- * <br><br>
- * Future integration: methods for reading and writing CSS variables will be moved
- * into the parent Library class.
+ * ColorHandler — Unified color parsing, conversion, and analysis
+ * ===============================================================
+ *
+ * Provides a single interface for working with colors in multiple formats:
+ * - CSS color names (via `CSS_COLORS`)
+ * - HEX (#RGB, #RRGGBB, #RRGGBBAA)
+ * - rgb()/rgba()
+ * - hsl()/hsla()
+ * - arrays ([r,g,b,a?]) and plain objects ({r,g,b,a?})
+ *
+ * The class internally validates and normalizes colors using a 1×1 canvas context.
+ * It supports an optional strict validation mode (`strictMode`):
+ * - strictMode=true  → invalid inputs return `undefined`
+ * - strictMode=false → invalid inputs fall back to transparent/black defaults
+ *
+ * Notes:
+ * - Normalization returns channel data (r,g,b,a), derived HEX, optional CSS name,
+ *   YIQ brightness, and WCAG relative luminance (linearized sRGB).
+ * - This class extends {@link Library} and uses {@link Library.toBoolean} for coercion.
+ *
+ * ---------------------------------------------------------------
+ * I. Public API
+ * ---------------------------------------------------------------
+ *
+ * - {@link strictMode}           - get/set strict validation behavior
+ *
+ * - {@link toHex}                - converts any supported color input to HEX
+ * - {@link toRGB}                - converts to rgb()/rgba()
+ * - {@link toHSL}                - converts to hsl()/hsla()
+ * - {@link toYIQ}                - returns YIQ brightness (0–255)
+ *
+ * - {@link getLuminance}         - returns WCAG relative luminance (0–1)
+ * - {@link getBrightness}        - returns derived brightness (0–100)
+ * - {@link getContrastRatio}     - returns contrast ratio (1–21) between two colors
+ * - {@link getAutoTextColor}     - returns '#000' or '#fff' for readable text on a background
+ *
+ * - {@link invert}               - returns complementary color as HEX
+ * - {@link isValid}              - validates whether an input can be parsed as a color
+ * - {@link mix}                  - mixes two colors by ratio (0–1), returns HEX
+ * - {@link randomColor}          - generates a random HEX color
+ *
+ * ---------------------------------------------------------------
+ * II. Private Methods / Internals
+ * ---------------------------------------------------------------
+ * - {@link #parseColor}          - parses/normalizes input to {r,g,b,a,hex,name,yiq,luminance}
+ * - {@link #getRGBA_Array}       - resolves a fillStyle to [R,G,B,A] via canvas sampling
+ *
+ * @version 1.0.0
  */
 export class ColorHandler extends Library {
 	#canvas;
 	#ctx;
-	#strictMode = true;
-	/**
-	 * Gets the current strict mode state.
-	 * @returns {Boolean} true if strict mode is enabled, false otherwise
-	 */
-	get strictMode() { return this.#strictMode; }
 
+	#strictMode = true;
+	get strictMode() { return this.#strictMode; }
 	/**
 	 * Sets the strict mode state.
 	 * @param {Boolean} flag whether to enable or disable strict mode
 	 */
-	set strictMode(flag) { this.#strictMode = Boolean(flag); }
+	set strictMode(flag) { this.#strictMode = this.toBoolean(flag); }
 
 	/**
-	 * Creates a ColorHandler instance and initializes the validation canvas.
-	 * @constructor ColorHandler
+     * @constructor Creates a ColorHandler instance and initializes the validation canvas.
+     * @param {string | HTMLElement | Class | null} parent parent of the instance
 	 */
 	constructor(parent) {
         super(parent);
@@ -40,10 +73,6 @@ export class ColorHandler extends Library {
 		this.#ctx = this.#canvas.getContext('2d', { willReadFrequently: true });
 	}
 
-
-	/* ==========================================================
-		PARSING
-	========================================================== */
 
 	/**
 	 * Parses any valid CSS color format into a normalized object.
@@ -142,10 +171,6 @@ export class ColorHandler extends Library {
 		return { r, g, b, a, hex, name, yiq, luminance };
 	}
 
-	/* ==========================================================
-		CONVERSION
-	   ========================================================== */
-
 	/**
 	 * Converts a given color to a HEX string.
 	 * @param {String | Array | Object} color - Any valid color format
@@ -209,10 +234,6 @@ export class ColorHandler extends Library {
 		return c ? c.yiq : undefined;
 	}
 
-	/* ==========================================================
-		ANALYSIS
-	========================================================== */
-
 	/**
 	 * Calculates the luminance of a color (0 to 1).
 	 * @param {String | Array | Object} color - Any valid color format
@@ -259,10 +280,6 @@ export class ColorHandler extends Library {
 		return c.yiq > 128 ? '#000' : '#fff';
 	}
 
-	/* ==========================================================
-		UTILITY
-	========================================================== */
-
 	/**
 	 * Inverts the given color (returns its complementary color).
 	 * @param {String | Array | Object} color - Any valid color format
@@ -307,10 +324,6 @@ export class ColorHandler extends Library {
 	randomColor() {
 		return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
 	}
-
-	/* ==========================================================
-		INTERNAL HELPERS
-	========================================================== */
 
 	/**
 	 * Converts any valid fillStyle into a Uint8ClampedArray [R,G,B,A].

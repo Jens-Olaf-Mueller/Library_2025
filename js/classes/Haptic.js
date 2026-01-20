@@ -22,7 +22,6 @@ import Library from './Library.js';
  * II. Private Methods
  * ---------------------------------------------------------------
  * - #pulse:           - Central dispatcher for hardware interaction
- * - #passThrottle:    - Ensures hardware isn't flooded by rapid pulses
  * - #createIOSSwitchElement: - Prepares the hidden DOM element for iOS hack
  * ===============================================================
  */
@@ -52,7 +51,6 @@ export class Haptic extends Library {
     activate() {
         if (this.enabled) return;
         this.enabled = true;
-        if (this.engine === 'ios') this.#createIOSSwitchElement();
         this.log('Haptic system armed and ready for pulses.');
     }
 
@@ -66,8 +64,8 @@ export class Haptic extends Library {
 
         switch (effect) {
             case 'tick':
-                // return this.#pulse(20, 'tick');
-                return this.#pulse([33,5,0], 'tick');
+                return this.#pulse(33, 'tick');
+                // return this.#pulse([33,5,0], 'tick');
 
             case 'error':
                 return this.#pulse([75, 100, 75], 'error');
@@ -86,9 +84,9 @@ export class Haptic extends Library {
      */
     stop() {
         if (this.engine === 'android') navigator.vibrate(0);
+        this.terminate();
         this.log('Stop signal sent.');
     }
-
 
     /**
      * Terminates and removes the iOS-switch (hack)
@@ -102,7 +100,6 @@ export class Haptic extends Library {
         }
     }
 
-
     /**
      * Central pulse dispatcher.
      * @private
@@ -111,29 +108,24 @@ export class Haptic extends Library {
      * @returns {boolean}
      */
     #pulse(pattern, label) {
-        if (label === 'tick' && !this.#passThrottle()) return false;
+        // Throttling prevents the hardware from being overwhelmed.
+        if (label === 'tick') {
+            const now = Date.now();
+            if (now - this.#lastPulseTs < this.intervalDelay) return false;
+            this.#lastPulseTs = now;
+        }
 
         this.log(`${this.engine.toUpperCase()} → ${label.toUpperCase()} (${JSON.stringify(pattern)})`);
 
         if (this.engine === 'android') return navigator.vibrate(pattern);
 
-        if (this.engine === 'ios' && this.element) {
+        if (this.engine === 'ios') {
+            this.#createIOSSwitchElement();
             this.element.click(); // trigger the label for the iOS-checkbox
+            this.terminate();
             return true;
         }
-    }
-
-
-    /**
-     * Prevents the hardware from being overwhelmed.
-     * @private
-     * @returns {boolean}
-     */
-    #passThrottle() {
-        const now = Date.now();
-        if (now - this.#lastPulseTs < this.intervalDelay) return false;
-        this.#lastPulseTs = now;
-        return true;
+        return false; // Explicit return for desktop/fallback
     }
 
     /**
@@ -143,13 +135,11 @@ export class Haptic extends Library {
     #createIOSSwitchElement() {
         if (this.element) return;
 
-        // const id = `chkIOS-${Math.random().toString(36).substr(2, 9)}`;
-        const id = `chkIOSHapticTrigger`;
+        const id = `chkIOS-${Math.random().toString(36).substr(2, 9)}`;
         this.element = this.createElement('label', {
             htmlFor: id,
             style: { display: 'none' }
         });
-
         this.element.appendChild(
             this.createElement('input', {
                 type: 'checkbox',
@@ -157,8 +147,7 @@ export class Haptic extends Library {
                 switch: 'true', // NOTE this is important to make it work in iOS!
             })
         );
-
         document.body.appendChild(this.element);
-        this.log('Hidden iOS Structure (Checkbox + Label) injected.');
+        this.log('Hidden iOS switch injected.');
     }
 }

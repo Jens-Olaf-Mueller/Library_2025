@@ -6,9 +6,10 @@ import { OBJ_COMPONENTS } from '../constants.js';
  * ===============================================================
  *
  * Provides a consistent foundation for UI components that need:
- * - a main DOM element reference (`element`) and an optional parent (`parent`)
+ * - a main DOM element reference (`element`) and an optional parent class or element (`parent`)
  * - a shared DOM cache (`this.DOM`) populated by `renderUI()`
  * - a visibility toggle that maps to the `hidden` attribute (`visible`)
+ * - an enabled propery ( can be used for CSS styling )
  * - a safe element factory (`createElement()`) supporting:
  *   - event binding via `on*` keys
  *   - boolean attribute semantics (presence/absence)
@@ -55,7 +56,8 @@ import { OBJ_COMPONENTS } from '../constants.js';
 export default class Library {
     #rootElement = null;
     /**
-     * Determines the root element (i.e. overlay) for a visual component
+     * Determines the root element (i.e. overlay) for a visual component.
+     * Set by renderUI()
      * @type {HTMLElement|null}
      */
     get rootElement() { return this.#rootElement; }
@@ -222,8 +224,7 @@ export default class Library {
 
 
     /**
-     * Creates a new base Library instance.
-     * @constructor
+     * @constructor Creates a new base Library instance.     *
      * @param {string | HTMLElement | Class | null} parent parent of the instance
      * - string:    → represents an ID for the parent element
      * - HTML:      → element is the parent itself
@@ -792,8 +793,7 @@ export default class Library {
             );
         }
     }
-} // END: Class
-
+} // END: class Library
 
 
 /**

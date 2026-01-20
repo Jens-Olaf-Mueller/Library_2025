@@ -19,12 +19,12 @@ document.addEventListener('input', globalEventHandler);
 document.addEventListener('overflow', globalEventHandler);
 
 // const msgbox = new MessageBox("Mal sehen, ob's läuft...", null, 'OK, Close, Load', true, true);
-const msgbox = new MessageBox({prompt: "Mal sehen, ob's läuft...", buttons: 'OK, Close, Load', closeButton: true});
+// const msgbox = new MessageBox({prompt: "Mal sehen, ob's läuft...", buttons: 'OK, Close, Load', closeButton: true});
 // msgbox.gradientFrom = 'white';
 // msgbox.fade = true;
 // msgbox.autoClose= 5;
 // msgbox.includeReadOnlyProperties = true;
-const result = await msgbox.show();
+// const result = await msgbox.show();
 const body = document.getElementById('demoBody');
 const colors = new ColorHandler(body);
 const lib = new Library();

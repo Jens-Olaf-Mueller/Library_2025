@@ -51,17 +51,12 @@ export class WheelPicker extends Library {
     #wheels = [];
     get wheels() { return this.#wheels; }
 
-    /** @type {number[]} */
-    #activeValues = []; // per wheel
-
     #mode = 'time'; // default
-    /** @returns {'time'|'hours'|'spin'|'date'|'custom'} */
     get mode() { return /** @type any */ (this.#mode); }
     /**
      * Sets the picker mode.
      * Invalid values are ignored.
-     * @param {string} val a valid string like
-     * "time" | "hours" | "spin" | "date" | "custom"
+     * @param {'time'|'hours'|'spin'|'date'|'custom'} val a valid string
      */
     set mode(val) {
         const validMode = String(val).toLowerCase().trim();
@@ -70,18 +65,15 @@ export class WheelPicker extends Library {
     }
 
     #onCustomModeReturn = 'value';
-    /** @returns {'text'|'value'|'object'} */
     get onCustomModeReturn() { return this.#onCustomModeReturn; }
     /**
-     * Defines what will be returned in custom mode.
-     *  @param {string} val a valid string like
-     * "text" | "value" | "object"
+     * Defines what kind of value will be returned in custom mode.
+     *  @param {'text'|'value'|'object'} val a valid string
      */
     set onCustomModeReturn(val) {
         const valid = String(val).toLowerCase().trim();
         if (['text','value','object'].includes(valid)) this.#onCustomModeReturn = valid;
     }
-
 
     #wrap = true;
     get wrap() {  return this.#wrap; }
@@ -91,8 +83,7 @@ export class WheelPicker extends Library {
         this.#wrap = this.toBoolean(flag);
     }
 
-
-    #step = 1; /** @type {number | Array<number|string>} */
+    #step = 1;
     get step() { return this.#step; }
     /**
      * Sets the step configuration for the wheel picker.
@@ -181,11 +172,9 @@ export class WheelPicker extends Library {
         }
     }
 
-
     #min = 0;
     /** @returns {number} */
     get min() { return this.#min; }
-
     /**
      * Sets the minimum value for the picker.
      *
@@ -212,6 +201,7 @@ export class WheelPicker extends Library {
     }
 
     #max = Infinity;
+    /** @returns {number} */
     get max() { return this.#max; }
     /**
      * Sets the maximum value for the picker.
@@ -219,7 +209,7 @@ export class WheelPicker extends Library {
      * - Accepts number or string (e.g. "12", "12,5").
      * - Ignores null/undefined and uses a sensible default:
      *     • in modes "time" and "hours" → 23
-     *     • in other modes             → Infinity
+     *     • in other modes              → Infinity
      * - In modes "time" and "hours" values above 23
      *   are clamped down to 23.
      *
@@ -263,14 +253,27 @@ export class WheelPicker extends Library {
 
     #dataSource = null;
     get dataSource() { return this.#dataSource; }
+    /**
+     * Stores the raw data in custom mode.
+     * @param {string|Array<string>|object|Array<object>|null} data can be one of the following types:
+     *
+     * - CSV string         → creates ONE wheel, comma separated values represent the items
+     * - CSV string array   → creates "array.length" wheels (max. 4), items are CSV strings like before
+     * - object             → creates ONE wheel: keys are displayed item captions, values represent the item value
+     * - object array       → creates "array.length" wheels (max. 4)
+     */
     set dataSource(data) {
         this.#dataSource = data;
     }
 
-    /**
-     * title resolving
-     */
     #title = null;
+    /**
+     * Title resolving:
+     *
+     *  - If a title is explicit set this will be used as title for the picker
+     *  - If the input element is connected to a label element (by for attribute or nested)
+     *    the caption of the label element is used.
+     */
     get title() {
         if (this.#title) return this.#title;
         const id = this.input.id;
@@ -288,7 +291,6 @@ export class WheelPicker extends Library {
         if (caption && typeof caption == 'string') this.#title = caption;
     }
 
-
     /**
      * Returns the formatted value that would be written to the input.
      * For now this returns a string based on internal active values.
@@ -304,13 +306,13 @@ export class WheelPicker extends Library {
         this.#parseExternalValue(val);
     }
 
+    /** @type {Array<number>} */
+    #activeValues = []; // per wheel
     /**
      * Returns the raw per-wheel values (e.g. [hour, minute] or [minutesTotal]).
      * @returns {Array<number>}
      */
-    get values() {
-        return [...this.#activeValues];
-    }
+    get values() { return [...this.#activeValues]; }
 
     /**
      * @returns {Boolean} flag, that tells us whether we are in infinite spin mode or not
@@ -327,35 +329,36 @@ export class WheelPicker extends Library {
      * @param {HTMLInputElement} input - The associated input element (type="text", role="wheel", readonly).
      * @param {Object} [options] - Optional configuration overrides.
      * @param {'time'|'hours'|'spin'|'date'|'custom'} [options.mode='time']
-     * @param {'text'|'value'|'object'} [options.onCustomModeReturn]
-     * @param {boolean} [options.wrap=true]
-     * @param {number} [options.step]
      * @param {number} [options.min]
      * @param {number} [options.max]
+     * @param {number} [options.step]
+     * @param {boolean} [options.wrap=true]
+     * @param {string|Array<string>|object|Array<object>|null} [options.dataSource]
+     * @param {'text'|'value'|'object'} [options.onCustomModeReturn]
      */
     constructor(input, options = {}) {
         super(input);
         if (!(input instanceof HTMLInputElement)) return;
         this.input = this.element = input;
 
-        // read mode from data-mode attribute first
+        // read HTML attribute first
         this.mode = this.input.getAttribute('data-mode');
-        this.dataSource = this.input.getAttribute('data-source');
-
-        // mode and data from options overrides property!
-        if ('mode' in options) this.mode = options.mode;
-        if ('dataSource' in options) this.dataSource = options.dataSource;
-        if ('onCustomModeReturn' in options) this.onCustomModeReturn = options.onCustomModeReturn;
-        if ('step' in options) this.step = options.step;
-        if ('min'  in options) this.min  = options.min;
-        if ('max'  in options) this.max  = options.max;
-        this.#wrap = options.wrap ?? true;
-
-        // read HTML attributes (min/max/step, value)
         this.min = this.input.getAttribute('min');
         this.max = this.input.getAttribute('max');
         this.step = this.input.getAttribute('step');
         this.wrap = this.input.getAttribute('data-wrap'); // for testing only now
+        this.dataSource = this.input.getAttribute('data-source');
+
+        // mode and data from options overrides HTML properties!
+        if ('mode' in options) this.mode = options.mode;
+        if ('min'  in options) this.min  = options.min;
+        if ('max'  in options) this.max  = options.max;
+        if ('step' in options) this.step = options.step;
+        if ('wrap' in options) this.wrap = options.wrap;
+        if ('dataSource' in options) this.dataSource = options.dataSource;
+        if ('onCustomModeReturn' in options) this.onCustomModeReturn = options.onCustomModeReturn;
+
+        // parsing a pre-set input value
         this.#parseExternalValue(this.input.value);
         this.haptic = new Haptic(this);
     }
@@ -375,9 +378,15 @@ export class WheelPicker extends Library {
         this.log(this);
     }
 
-
+    /**
+     * Creates the actual wheel datas according to the mode and other settings (min, max, step etc.)
+     * @param {'spin'|'hours'|'time'|'date'|'custom'} mode a valid string value
+     * @returns {boolean}
+     * - true   → success
+     * - false  → error
+     */
     initWheels(mode) {
-        // IMPORTANT: make measurable BEFORE wheels init/measure
+        //  IMPORTANT!  make measurable BEFORE wheels init/measure
         this.rootElement.removeAttribute('hidden');
         const columns = this.columns;
         // creation options for the wheel
@@ -391,10 +400,9 @@ export class WheelPicker extends Library {
             stringTo: this.stringTo.bind(this),
             createElement: this.createElement.bind(this),
             onSnap: (payload) => this.#handleWheelSnap(payload),
-            haptic: this.haptic
+            haptic: this.haptic // provide the haptic for each wheel!
         });
 
-        // 'spin'|'hours'|'time'|'date'|'custom'
         if (mode === 'spin') {
             const opts = makeOpts(mode, this.#activeValues[0]);
             this.#wheels.push(new Wheel(columns[0], opts));
@@ -414,8 +422,9 @@ export class WheelPicker extends Library {
         } else if (mode === 'custom') {
             let data = this.dataSource, wheels = 1; // default
             if (data instanceof Array) {
-                // NOTE : Array.prototype has been changed!
-                // On errors see parent class → Library
+                // NOTE : Array.prototype has been expanded: Array.prototype.isTypeOf
+                /** On errors see at the END: class → {@link Library} */
+                // LINK "./Library.js"
                 if (data.isTypeOf('object')) {
                     wheels = Math.min(data.length, 4);
                 } else {
@@ -434,7 +443,6 @@ export class WheelPicker extends Library {
         // make sure that ALL wheels are valid!
         return this.wheels.every(whl => whl.initDone === true);
     }
-
 
     /**
      * Closes the picker overlay.
@@ -465,18 +473,17 @@ export class WheelPicker extends Library {
                 this.input.focus();
             }
         }
-        if (this.haptic) {
-            this.haptic.stop();
-            this.haptic.terminate();
-        }
+        if (this.haptic) this.haptic.stop();
         this.#overlay.remove();
         this.#overlay = null;
         this.#columns = [];
         this.#activeValues = [];
     }
 
-    // ====== event handlers ====================================================
-
+    /**
+     * Eventhandler of the component handles the close button and the OK confirmation
+     * @param {event} e pointerevent
+     */
     onPointerDown(e) {
         e.preventDefault();
         if (e.target instanceof HTMLButtonElement) {
@@ -573,7 +580,6 @@ export class WheelPicker extends Library {
                         const keys = Object.keys(src);
                         return keys.length ? [keys[0]] : []; // default = first key text
                     }
-
                     return [];
                 };
 
@@ -610,15 +616,23 @@ export class WheelPicker extends Library {
                 // D) Single wheel: value is a single token ("Samstag")
                 this.#activeValues = [raw];
                 return;
-
             default:
         }
     }
 
+    /**
+     * Parses a given date string. Supports date formats like:
+     *
+     * - "dd.mm.yyyy" | "d.m.yyyy"
+     * - "yyyy-mm-dd" | "yyyy-mm-d"
+     * - other valid browser formats
+     *
+     * @param {string} expression the date string to be parsed
+     * @returns {object} {day: 'dd', month: 'mm', year: 'yyyy'}
+     */
     #parseDate(expression) {
         const str = expression?.trim();
-
-        // "DD.MM.YYYY" / "D.M.YYYY"
+        // "dd.mm.yyyy" | "d.m.yyyy"
         let m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(str);
         if (m) {
             const dd = Number(m[1]);
@@ -628,8 +642,7 @@ export class WheelPicker extends Library {
                 return { day: dd, month: mm, year: yyyy };
             }
         }
-
-        // "YYYY-MM-DD"
+        // "yyyy-mm-dd" | "yyyy-mm-d"
         m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(str);
         if (m) {
             const yyyy = Number(m[1]);
@@ -639,8 +652,7 @@ export class WheelPicker extends Library {
                 return { day: dd, month: mm, year: yyyy };
             }
         }
-
-        // Fallback: Date.parse (let den Browser versuchen)
+        // Fallback: Date.parse (let try the browser)
         const dt = Date.parse(str);
         const dtDefault = Number.isNaN(dt) ? new Date() : new Date(dt);
         return {
@@ -657,7 +669,7 @@ export class WheelPicker extends Library {
 
 
     /**
-     * Called by a Wheel when it has snapped to a stable value
+     * @private Called by a Wheel when it has snapped to a stable value
      */
     #handleWheelSnap(payload) {
         this.#activeValues = this.#wheels.map(whl => whl.value);
@@ -675,12 +687,9 @@ export class WheelPicker extends Library {
         }
     }
 
-
     /**
-     * // TODO
-     * // REVIEW
-     * Later we'll use the utils-helper format$ (will be integrated in Library)
-     * @param {string} mode
+     * @private Formats the selected value for the output.
+     * @param {'time'|'hours'|'spin'|'date'|'custom'} mode a valid string value
      */
     #formatValue(mode = this.#mode) {
         switch (mode) {
@@ -706,13 +715,15 @@ export class WheelPicker extends Library {
                     retVal.values[i] = this.wheels[i].value;
                 }
                 return retVal;
-
             default:
-                console.warn(`[WheelPicker.#formatValue]: illegal mode "${mode}"`);
+                this.log(`.#formatValue: illegal mode "${mode}"`,'warn');
         }
     }
 
-
+    /**
+     * @private Ensures the value is in a valid range
+     * @param {'time'|'hours'|'spin'|'date'|'custom'} mode a valid string value
+     */
     #coerceValue(mode) {
         switch (mode) {
             case 'time':
@@ -752,7 +763,7 @@ export class WheelPicker extends Library {
                 return; // do nothing...
 
             default:
-                console.warn(`[WheelPicker.#coerceValue]: illegal mode "${mode}"`);
+                this.log(`.#coerceValue: illegal mode "${mode}"`,'warn');
         }
     }
 }
