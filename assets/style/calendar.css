@@ -188,6 +188,7 @@
 
 [disabled] {
     color: var(--disabled-color, var(--cal-disabled-color, #aaa)) !important;
+    pointer-events: none !important;
 }
 
 /* Container braucht relative Position (haben wir im Pod gesetzt) */

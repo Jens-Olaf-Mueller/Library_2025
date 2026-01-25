@@ -65,6 +65,9 @@ export default class Library {
         this.#rootElement = this.#setElement(elmt);
     }
 
+    /** @returns {boolean} Whether a component has been rendered already */
+    get created() { return Boolean(this.rootElement); }
+
     #element = null;
     /**
      * Returns the currently assigned main DOM element.
@@ -176,18 +179,16 @@ export default class Library {
      * @type {boolean}
      */
     get visible() { return this.#visible; }
-    set visible(value) {
-        const flag = this.toBoolean(value);
-        this.#visible = flag;
+    set visible(flag) {
+        const state = this.toBoolean(flag);
+        if (this.#visible === state) return; // avoid endless loop by .show() / .hide()
+        this.#visible = state;
 
         const priorElement = this.rootElement ? this.rootElement : this.#element;
+        if (priorElement) priorElement.toggleAttribute('hidden', !state);
 
-        if (priorElement) {
-            if (flag) priorElement.removeAttribute('hidden');
-            else priorElement.setAttribute('hidden', '');
-        }
-        if (flag && typeof this.show === 'function') this.show();
-        else if (!flag && typeof this.hide === 'function') this.hide();
+        if (state && typeof this.show === 'function') this.show();
+        else if (!state && typeof this.hide === 'function') this.hide();
     }
 
     /** @type {boolean} Global toggle to mute / unmute haptics */
@@ -495,6 +496,26 @@ export default class Library {
     }
 
     /**
+     * Returns the computed style value of a given property for an element.
+     * Uses the internal stringTo() method for consistent property naming.
+     * @param {HTMLElement|string} expression - Element or ID string.
+     * @param {string} styleProp - CSS property name (e.g., 'font-size' or 'backgroundColor').
+     * @returns {string|undefined}
+     */
+    getStyle(expression, styleProp) {
+        const elmt = (expression instanceof HTMLElement) ? expression : (this.DOM[expression] || $(expression));
+        if (!elmt) return undefined;
+
+        const cssProperty = this.stringTo(styleProp, 'kebab');
+        if (window.getComputedStyle) {
+            return window.getComputedStyle(elmt, null).getPropertyValue(cssProperty);
+        }
+
+        // Fallback for very old environments or inline styles in camelCase
+        return elmt.style[this.stringTo(styleProp, 'camel')];
+    }
+
+    /**
      * Makes sure that we get or set a valid CSS variable name
      * @param {string} name CSS variable name to be normalized
      * @returns {string} a valid CSS-varname
@@ -532,7 +553,7 @@ export default class Library {
                 const isError = (method === 'error');
                 const color = {
                     WheelPicker: '#ffff00',
-                    Calculator:  '#ff6347',
+                    Calculator:  '#d2b48c',
                     MessageBox:  '#daa520',
                     Calendar:    '#00ffff',
                     Haptic:      '#00ff00'

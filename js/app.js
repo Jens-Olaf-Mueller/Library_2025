@@ -73,7 +73,9 @@ async function run() {
 // calendar.showSettings = true;
 
 // const calculator = new Calculator(true, 'inpBuddy');
-// const calculator = new Calculator(true);
+const calculator = new Calculator();
+// calculator.visible = true;
+// calculator.show();
 
 
 

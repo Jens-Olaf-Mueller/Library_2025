@@ -25,7 +25,7 @@ export const OBJ_COMPONENTS = {
         children: [{
                 element: 'CalendarPod',
                 tag: 'div',
-                class: '', // → becomes 'calendar-pod'
+                class: '',          // empty string is assembled from element. becomes → 'calendar-pod'
                 style: {
                     display: 'grid',
                     gridTemplateRows: 'auto auto 1fr auto',
@@ -34,8 +34,8 @@ export const OBJ_COMPONENTS = {
                     maxWidth: '28rem',
                     userSelect: 'none'
                 },
-                root: true,  // Root container of the calendar !!!
-                protected: true,
+                root: true,         // Root container of the calendar! Will be stored in: Library.rootElement
+                protected: true,    // protected means that the element is going to be inline styled
                 children: [
                     // ▼ Drop button (always visible, top-right)
                     {
@@ -320,9 +320,11 @@ export const OBJ_COMPONENTS = {
                     justifyContent: 'center',
                     justifyItems: 'center',
                     gridGap: 'var(--calc-grid-gap, 0.9rem)',
+                    background: 'linear-gradient(135deg, var(--calc-bg1), var(--calc-bg2))'
                 },
                 root: true,
                 protected: true,
+                hidden: '',
                 children: [
                     {
                         element: 'Display',
@@ -396,6 +398,10 @@ export const OBJ_COMPONENTS = {
                 {displayBorderRadius: '0.5rem'},
                 {darkShadow: '#b0b0b0'},
                 {lightShadow: '#fff'},
+                {bg1: '#ddd'},
+                {bg2: '#e1e1e4'},
+                {iconSize: '1.25rem'},
+                {iconColor: '#5166d6'}
             ]
         }
     },

@@ -44,9 +44,6 @@ export class Calendar extends Library {
     get year() { return this.currentDate.getFullYear(); }
     get firstOfMonth() { return new Date(this.year, this.month, 1); }
 
-    /** @returns {boolean} Whether calendar is rendered */
-    get created() { return Boolean(this.DOM.divCalendarPod); }
-
     #showYear = true;
     get showYear() { return this.#showYear; }
     set showYear(flag) {

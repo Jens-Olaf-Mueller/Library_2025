@@ -1,25 +1,26 @@
 /**
  * Universal 'all-in-one' function that unites the DOM-functions
- * => document.getElementById
- * => document.getElementsByTagName
- * => document.getElementsByClassName
- * => document.getElementsByName
- * => document.querySelectorAll
+ *  - document.getElementById
+ *  - document.getElementsByTagName
+ *  - document.getElementsByClassName
+ *  - document.getElementsByName
+ *  - document.querySelector
+ *  - document.querySelectorAll
  *
  * prepend 'export' if you wanna import the function in a module!
  *
  * @param {string} selector any valid CSS selector
- * @param {number | string} child optional,
+ * @param {number|'~'|':last-child'} child optional,
  * determines which child of the found nodelist or HTML-collection
  * is supposed to be returned. A number returns the child of the given index. A tilde '~' or the
  * string expression ':last-child' returns the last child of the list / collection.
  * @returns a single element (if selector is a valid ID or child is specified)
  * in all other cases a zero-based nodelist or HTML-collection, matching the selector-parameter
  * If the list contains ONLY ONE element, this element is returned only!
- * @usage   $('main-content')     -   returns an element with ID 'main-content'
+ * @example $('main-content')     -   returns an element with ID 'main-content'
  *          $('div','~')          -   returns the last div-container of the document
- *          $('a',0)              -   returns the first link (<a>-element)
- *          $('div.myClass')      -   returns a list with all div's containing class 'myClass'
+ *          $('a',0)              -   returns the first link (<a>-element</a>)
+ *          $('div.myClass')      -   returns a list of all divs that have the CSS-class "myClass"
  *          $('div.myClass','~')  -   returns last div containing class 'myClass'
  *          $('.clsNames',3)      -   returns the 4th(!) child of the wanted class list
  *          $('input[type=text]') -   returns a list with all input elements, being text fields

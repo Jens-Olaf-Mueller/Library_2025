@@ -1,5 +1,5 @@
 /**
- * Calculator.js (Refactored)
+ * Calculator.js
  *
  * A self-contained, UI-integrated calculator widget with persistent settings
  * and clean lifecycle handling.
@@ -25,33 +25,44 @@ const NUM_REGEX = /[^-0-9,e+e-]|-$|\+$/g;
 
 /**
  * Calculator class with display, input handling and math evaluation.
- * @extends Utility
  */
 export class Calculator extends Library {
     #observer;
+
 	#buddy = null;
-	get buddy() { return this.#buddy; }
-	set buddy(element) {
-		if (typeof element === 'string') {
-			const type = $(element).getAttribute('type') || null;
-			this.#buddy = (type === 'text' || type === 'number') ? $(element) : null;
-		} else if (element instanceof HTMLInputElement) {
-			const type = element.getAttribute('type');
-			this.#buddy = (type === 'text' || type === 'number') ? element : null;
-		} else this.#buddy = null;
+    get buddy() { return this.#buddy; }
+    set buddy(element) {
+        let resolved = null;
+        if (typeof element === 'string') {
+            const input = $(element);
+            if (input) {
+                const type = input.getAttribute('type');
+                resolved = (type === 'text' || type === 'number') ? input : null;
+            }
+        } else if (element instanceof HTMLInputElement) {
+            const type = element.getAttribute('type');
+            resolved = (type === 'text' || type === 'number') ? element : null;
+        }
+        this.#buddy = resolved;
 
-		if (this.#buddy) {
-			const calc = this.DOM?.divCalculatorPod || $('divCalculatorPod');
-			if (calc) calc.remove();
-			if (this.#observer) this.#observer.disconnect();
-			this.#observer = undefined;
-			this.#init();
+        if (this.#buddy) {
+            if (!this.created) this.#init();
+            // Upgrade manual buddy to data-calculator status
+            if (this.#buddy.dataset.calculator !== 'true') {
+                this.#buddy.dataset.calculator = 'true';
+            }
+            this.#injectBuddyIcon(this.#buddy);
             this.DOM?.divCalculatorPod.setAttribute('data-calcbuddy', true);
-		}
-	}
+        }
+    }
 
-    /** @returns {boolean} Whether calendar is rendered */
-    get created() { return Boolean(this.DOM.divCalculatorPod); }
+    // Property for Icon-Handling
+    #displayBuddyIcon = false;
+    get displayBuddyIcon() { return this.#displayBuddyIcon; }
+    set displayBuddyIcon(flag) {
+        this.#displayBuddyIcon = this.toBoolean(flag);
+        if (this.#displayBuddyIcon) this.#autoScanBuddies();
+    }
 
 	#displayWidth;
 	get displayWidth() { return this.#displayWidth; }
@@ -72,64 +83,129 @@ export class Calculator extends Library {
     }
 
     /** True if the current visible expression contains any parentheses. */
-    get hasParens() {
-        return /[()]/.test(this.fullExpression);
-    }
+    get hasParens() { return /[()]/.test(this.fullExpression); }
 
     // remember last binary operation for repeated "=" presses
     lastOperator = null;   // e.g. "+", "×", "÷", " mod "
     lastOperand  = null;   // numeric right-hand operand used last time
     lastWasUnary = false;  // true if the last completed action was a unary function like x² etc.
 
+	get prevOperand() { return this.#getText('divPrevOperand'); }
+	set prevOperand(v = '') { this.#setText('divPrevOperand', v); }
+
+	get currOperand() { return this.#getText('divInput'); }
+	set currOperand(v = '0') { this.#setText('divInput', v); }
+
+	get memDisplay() { return this.#getText('divMemory'); }
+	set memDisplay(v) { this.#setText('divMemory', v); }
+
+	get currValue() { return Number(this.currOperand.replace(NUM_REGEX, '').replace(/,/g, '.')); }
+	get prevValue() { return Number(this.prevOperand.replace(NUM_REGEX, '').replace(/,/g, '.')); }
+
+	get termIsOpen() { return this.currOperand.includes(BRACKET_OPEN); }
+	get isNumeric() {
+        return typeof this.currentButton === 'string' && (!isNaN(this.currentButton) || this.currentButton === 'π');
+    }
+	get isBracket() { return '()'.includes(this.currentButton); }
+	get lastInput() { return this.currOperand.slice(-1); }
+
+
 	constructor(autostart = false, buddy = null, parent = document.body) {
 		super(parent);
         /** @type {Parser} — embedded math parser component */
 	    this.parser = new Parser({ precision: this.decimals });
-
-		if (buddy !== null) this.buddy = buddy;
-		else this.#init();
+        if (buddy !== null) this.buddy = buddy;
+        this.#init();
+        // this.#autoScanBuddies();
 		if (autostart) this.show();
-
 	}
 
 	/**
 	 * Initializes calculator UI, caches DOM, starts observer.
 	 * Called internally on creation or buddy assignment.
+     * Initializes calculator UI exactly once.
 	 */
-	#init() {
-		this.renderUI(document.body, true);
-        this.DOM.divCalculatorPod.addEventListener('click', (e) => this.#handleButtonClick(e));
-		this.reset();
+    #init() {
+        if (this.created) return; // Guard for singleton
 
-		let timeout;
-		this.#observer = new MutationObserver(() => {
-			clearTimeout(timeout);
-			timeout = setTimeout(() => this.#adjustDisplay(), 25);
-		});
-        // ✅ robust: reagiert auf Textknoten-Änderungen
+        this.renderUI(document.body, true);
+        this.DOM.divCalculatorPod.addEventListener('click', (e) => this.#handleButtonClick(e));
+        this.reset();
+        let timeout;
+        this.#observer = new MutationObserver(() => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => this.#adjustDisplay(), 25);
+        });
+
         this.#observer.observe(this.DOM.divInput, {
             childList: true,
             characterData: true,
             subtree: true,
         });
 
-		this.DEF_FONTSIZE = this.getStyle(this.DOM.divInput, 'font-size').replace(/\D/g, '');
-	}
+        const fs = this.getStyle(this.DOM.divInput, 'font-size');
+        this.DEF_FONTSIZE = fs ? fs.replace(/\D/g, '') : 36;
+        this.#autoScanBuddies();
+    }
 
-	/** Shows the calculator. */
+    /**
+     * Scans the document for inputs with [data-calculator="true"]
+     * and attaches the buddy icon and logic.
+     */
+    #autoScanBuddies() {
+        const calcBuddies = $('input[data-calculator="true"]', true);
+        calcBuddies.forEach(buddy => this.#injectBuddyIcon(buddy));
+    }
+
+    /**
+     * Injects the SVG icon as a trigger next to the buddy input.
+     * @param {HTMLElement} input
+     */
+    #injectBuddyIcon(input) {
+        // Check if icon already exists to avoid duplicates
+        if (input.nextElementSibling?.classList.contains('calc-buddy-icon')) return;
+
+        const disabled = input.hasAttribute('disabled');
+        const spanIcon = this.createElement('span', {
+            classList: 'svg-icon calc-buddy-icon',
+            style: { cursor: 'pointer', color: 'var(--calc-icon-color, inherit)' },
+            innerHTML: ASSETS.icon,
+            onclick: () => {
+                if (this.visible || disabled) return;
+                this.buddy = input;
+                this.show();
+            }
+        });
+        spanIcon.toggleAttribute('disabled', disabled);
+        input.after(spanIcon);
+    }
+
+    /**
+     * Shows the calculator
+     * @param {HTMLElement|string|null} buddy optional connected HTML input element
+     * - null           → no buddy assigned
+     * - HTMLElement    → input element to display the result
+     * - string         → represents the ID of the input element
+     */
 	show(buddy = null) {
 		if (buddy !== null) this.buddy = buddy;
-		this.DOM.divCalculatorPod.removeAttribute('hidden');
+        this.reset();
+        super.visible = true; // better than "this.visible" since it shows intention to set initial state!
 		this.#displayWidth = this.DOM.divInput.clientWidth;
-		if (this.buddy) this.currOperand = this.buddy.value || 0;
-        this.#adjustDisplay(); // ✅ einmal direkt justieren
+        if (this.buddy) {
+            const value = this.parser.parse(this.buddy.value);
+            this.currOperand = (value instanceof Error) ? 0 : value.toString().replace('.', ',');;
+        }
+        this.#adjustDisplay();
 		$('.all-clear').focus();
+        console.log(this)
 	}
 
-	/** Hides calculator and disconnects observer. */
+	/**
+     * Hides calculator and disconnects observer
+     */
 	hide() {
-		this.DOM.divCalculatorPod.setAttribute('hidden', '');
-		if (this.#observer) this.#observer.disconnect();
+        this.visible = false;
 		document.dispatchEvent(new CustomEvent('calculatorclosed'));
 	}
 
@@ -171,27 +247,6 @@ export class Calculator extends Library {
 
 	#getText(ref) { return this.DOM[ref].textContent; }
 	#setText(ref, val) { this.DOM[ref].textContent = val; }
-
-	get prevOperand() { return this.#getText('divPrevOperand'); }
-	set prevOperand(v = '') { this.#setText('divPrevOperand', v); }
-
-	get currOperand() { return this.#getText('divInput'); }
-	set currOperand(v = '0') { this.#setText('divInput', v); }
-
-	get memDisplay() { return this.#getText('divMemory'); }
-	set memDisplay(v) { this.#setText('divMemory', v); }
-
-	get currValue() { return Number(this.currOperand.replace(NUM_REGEX, '').replace(/,/g, '.')); }
-	get prevValue() { return Number(this.prevOperand.replace(NUM_REGEX, '').replace(/,/g, '.')); }
-
-	get termIsOpen() { return this.currOperand.includes(BRACKET_OPEN); }
-	get isNumeric() { return typeof this.currentButton === 'string' && (!isNaN(this.currentButton) || this.currentButton === 'π'); }
-	get isBracket() { return '()'.includes(this.currentButton); }
-	get lastInput() { return this.currOperand.slice(-1); }
-	get exists() { return this.DOM.divCalculatorPod !== null; }
-	get visible() { return !this.DOM.divCalculatorPod.hasAttribute('hidden'); }
-
-	// === BUTTON HANDLING ===
 
 	/**
 	 * Main click handler dispatching to smaller methods.
@@ -295,22 +350,19 @@ export class Calculator extends Library {
             if (this.lastInput === SEPARATOR) return true;
 
             // If the last char is "(" or an operator, prepend leading zero
-            if (this.lastInput === BRACKET_OPEN || this.isOperator()) {
-                this.currOperand += '0';
-            }
+            if (this.lastInput === BRACKET_OPEN || this.isOperator()) this.currOperand += '0';
 
             // Allow only one separator within the innermost "( ... )"
             const expressionIfAdded = this.currOperand + SEPARATOR;
             const lastOpenIdx = this.currOperand.lastIndexOf(BRACKET_OPEN);
-            const sepIsValid =
-                expressionIfAdded.lastIndexOf(SEPARATOR) > lastOpenIdx;
-
+            const sepIsValid = expressionIfAdded.lastIndexOf(SEPARATOR) > lastOpenIdx;
             if (sepIsValid) this.updateDisplay(SEPARATOR);
             return true;
         }
 
         // Case B: no parentheses open
-        // If an operator is pending and divPrevOperand is not yet set, shift current → divPrevOperand and start a fresh "0,"
+        // If an operator is pending and divPrevOperand is not yet set,
+        // shift current → divPrevOperand and start a fresh "0,"
         if (this.operationPending && this.prevOperand === '') {
             this.prevOperand = this.currOperand;
             this.currOperand = '0';
@@ -319,17 +371,12 @@ export class Calculator extends Library {
         }
 
         // If current is empty, or last was an operator, prepend leading zero
-        if (!this.currOperand || this.isOperator()) {
-            this.currOperand += '0';
-        }
+        if (!this.currOperand || this.isOperator()) this.currOperand += '0';
 
         // Only one separator in the current operand (outside of parentheses)
-        if (!this.currOperand.includes(SEPARATOR)) {
-            this.updateDisplay(SEPARATOR);
-        }
+        if (!this.currOperand.includes(SEPARATOR)) this.updateDisplay(SEPARATOR);
         return true;
     }
-
 
     /**
      * Handles open/close bracket button presses.
@@ -431,7 +478,6 @@ export class Calculator extends Library {
         this.lastWasUnary = (result !== null);
 	}
 
-
 	factorial(number) {
 		if (number > 170) return Infinity;
 		if (number === 0 || number === 1) return 1;
@@ -439,7 +485,6 @@ export class Calculator extends Library {
 		while (number > 1) { number--; result *= number; }
 		return result;
 	}
-
 
     /**
      * Computes the current expression.
@@ -562,8 +607,6 @@ export class Calculator extends Library {
         return result;
     }
 
-	// === FORMATTING & DISPLAY ===
-
 	round(num, decimalPlaces = this.decimals) {
 		if (Number.isInteger(num)) return num;
 		const p = Math.pow(10, decimalPlaces);
@@ -599,66 +642,30 @@ export class Calculator extends Library {
 			output.style.fontSize = `${fntSize}px`;
 		}
 	}
-
-	getStyle(element, styleProp) {
-		const camelize = str => str.replace(/\-(\w)/g, (_, l) => l.toUpperCase());
-		if (element.currentStyle) return element.currentStyle[camelize(styleProp)];
-		if (document.defaultView && document.defaultView.getComputedStyle)
-			return document.defaultView.getComputedStyle(element, null).getPropertyValue(styleProp);
-		return element.style[camelize(styleProp)];
-	}
-
-	/** Builds calculator DOM dynamically. */
-	#renderUI() {
-        if (this.created) return;
-
-		const divPod = this.createElement('div', { id: 'divCalculatorPod', class: 'calculator-pod', hidden: '' });
-		this.parent.appendChild(divPod);
-
-		ASSETS.containers.forEach(item => {
-			const [id, _class] = item.split('|');
-			divPod.append(this.createElement('div', { id, class: _class }));
-		});
-		$('divStatusbar').append($('divMemory'), $('divPrevOperand'));
-		$('divDisplay').append($('divStatusbar'), $('divInput'));
-
-		ASSETS.buttons.forEach(btn => {
-			const [text, _class] = btn.split('|');
-			const button = this.createElement('button', {
-				textContent: text,
-				class: `calc-btn ${_class.trim()}`
-			});
-			if (this.buddy && _class === 'equals') button.classList.add('buddy');
-			if (!this.buddy && text === '↵') button.setAttribute('hidden', '');
-			divPod.append(button);
-			button.addEventListener('click', () => this.#handleButtonClick(button.textContent));
-		});
-	}
 }
 
 // === ASSETS + CONSTANTS ===
 export const ASSETS = {
-	// buttons: [
-	// 	'MR|memory', 'MS|memory', 'MC|memory', 'M+|memory', 'M-|memory',
-	// 	'AC|all-clear', '(|', ')|', ' mod |operator', '⌫|', 'n!|operator',
-	// 	'x²|operator', '√|operator', '±|operator', 'π|operator', '7|', '8|',
-	// 	'9|', '÷|operator', '%|operator', '4|', '5|', '6|', '×|operator',
-	// 	'1/x|operator', '1|', '2|', '3|', '-|operator', '=|equals', '0|zero',
-	// 	',|', '+|operator', '↵|equals'
-	// ],
-	// containers: [
-	// 	'divDisplay|display',
-	// 	'divStatusbar|status-bar',
-	// 	'divMemory|flx-start',
-	// 	'divPrevOperand|flx-end',
-	// 	'divInput|flx-end'
-	// ],
 	errors: [
 		'Wrong parameter type', 'Overflow', 'Negative root', 'Division by zero',
 		'Invalid expression', 'Not defined'
 	],
 	mathOps: [' mod ', '+-×÷ mod ', 'n! x² √ ± % 1/x', ',', '(', ')'],
-	maxInput: 21
+	maxInput: 21,
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <g id="svgCalculator" data-name="icon-calculator">
+                <path d="M16.5,21.937h-9a2.5,2.5,0,0,1-2.5-2.5V4.563a2.5,2.5,0,0,1,2.5-2.5h9a2.5,2.5,0,0,1,2.5,2.5V19.437A2.5,2.5,0,0,1,16.5,21.937ZM7.5,3.063A1.5,1.5,0,0,0,6,4.563V19.437a1.5,1.5,0,0,0,1.5,1.5h9a1.5,1.5,0,0,0,1.5-1.5V4.563a1.5,1.5,0,0,0-1.5-1.5Z"/>
+                <path d="M14.5,9.757h-5A1.5,1.5,0,0,1,8,8.257V6.563a1.5,1.5,0,0,1,1.5-1.5h5a1.5,1.5,0,0,1,1.5,1.5V8.257A1.5,1.5,0,0,1,14.5,9.757Zm-5-3.694a.5.5,0,0,0-.5.5V8.257a.5.5,0,0,0,.5.5h5a.5.5,0,0,0,.5-.5V6.563a.5.5,0,0,0-.5-.5Z"/>
+                <circle cx="12" cy="11.508" r="0.75"/>
+                <circle cx="15.25" cy="11.508" r="0.75"/>
+                <circle cx="8.75" cy="11.508" r="0.75"/>
+                <circle cx="12" cy="14.848" r="0.75"/>
+                <circle cx="15.25" cy="14.848" r="0.75"/>
+                <circle cx="8.75" cy="14.848" r="0.75"/>
+                <circle cx="15.25" cy="18.187" r="0.75"/>
+                <path d="M12.248,18.687H8.5a.5.5,0,0,1,0-1h3.744a.5.5,0,1,1,0,1Z"/>
+            </g>
+        </svg>`
 };
 
 const [MODULO, OPERATORS, FUNCTIONS, SEPARATOR, BRACKET_OPEN, BRACKET_CLOSE] = ASSETS.mathOps;
