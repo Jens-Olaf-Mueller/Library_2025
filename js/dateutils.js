@@ -1,30 +1,54 @@
 /**
+ * @file dateutils.js
  * @module dateutils
- * @description
- * Utility module providing various date-related helper functions for parsing,
- * formatting, and calculating calendar data.
- * All functions are pure and return `undefined` on invalid input instead of throwing errors.
+ * @version 1.0.0
+ * @author Jens-Olaf-Mueller
  *
- * @functions
- * - {@link parse()}                – Normalizes various input formats into a valid JS Date object.
- * - {@link isLeapYear()}           – Determines whether a given year is a leap year.
- * - {@link daysInMonth()}          – Returns the number of days in the month of the given date.
- * - {@link weeksPerMonth()}        – Calculates the number of ISO calendar weeks in the given month.
- * - {@link getISOWeek()}           – Returns the ISO week number for a given date.
- * - {@link getDateFromWeek()}      – Returns the date corresponding to a specific ISO week and weekday.
- * - {@link firstWeekdayInMonth()}  – Finds the first occurrence of a weekday within a given month.
- * - {@link getDayOfTheYear()}      – Returns the ordinal day of the year (1–366) for the given date.
- * - {@link isWorkday()}            – Checks whether a date is a valid workday (optionally ignoring holidays).
- * - {@link getWorkdays()}          – Counts the number of workdays in the month of the given date.
- * - {@link getEasterSunday()}      – Calculates the Easter Sunday date for a given year (Oudin algorithm).
- * - {@link isHoliday()}            – Determines if a date is a public holiday (by country and region).
- * - {@link getHolidaysOfMonth()}   – Lists all holidays of a given month as formatted strings.
+ * dateutils — Comprehensive date calculation and holiday logic.
+ * ==============================================================================
  *
- * @constants
- * - OBJ_HOLIDAYS           – Object containing fixed-date public holidays for DE, CH, and AT.
+ * A collection of pure utility functions for advanced calendar operations,
+ * ISO week handling, and regional holiday calculations (DE/CH/AT).
+ * - Key Features:
+ * - Robust Parsing: `parse()` normalizes various string formats into valid Date objects without throwing errors.
+ * - ISO Standards: Full support for ISO-8601 week numbers and year-crossing edge cases.
+ * - Calendar Math: Helpers for leap years, days in month, and ordinal day numbers (1-366).
+ * - Workday Logic: Calculates workdays per month, optionally filtering weekends and holidays.
+ * - Holiday Engine: Determines fixed and movable holidays (Easter-based) for Germany, Switzerland, and Austria.
  *
+ * ---------------------------------------------------------------
+ * I. Exported Functions
+ * ---------------------------------------------------------------
+ * - {@link parse}                  - Converts strings/numbers into safe Date objects or undefined.
+ * - {@link isLeapYear}             - Checks if a year is a leap year (supports 400-year rule).
+ * - {@link daysInMonth}            - Returns the total days (28-31) for a specific month.
+ * - {@link weeksPerMonth}          - Calculates how many ISO weeks span across a given month.
+ * - {@link getISOWeek}             - Determines the ISO week number (1-53) for a date.
+ * - {@link getDateFromWeek}        - Reverses ISO logic to find a date from year, week, and day index.
+ * - {@link getFirstDayOfISOWeek}   - Finds the Monday that starts a specific ISO week.
+ * - {@link firstWeekdayInMonth}    - Finds the first occurrence of a specific weekday (e.g. 1st Sunday).
+ * - {@link getDayOfTheYear}        - Returns the day's ordinal position within the year (1-366).
+ * - {@link isWorkday}              - Checks if a date is a working day, considering weekends and holidays.
+ * - {@link getWorkdays}            - Counts total workdays in a month with detailed holiday stats.
+ * - {@link getEasterSunday}        - Calculates Easter date using Oudin's algorithm.
+ * - {@link isHoliday}              - Identifies if a date is a public holiday in a specific region/country.
+ * - {@link getHolidaysOfMonth}     - Returns a formatted list of all holidays in a target month.
+ *
+ * ---------------------------------------------------------------
+ * II. Constants
+ * ---------------------------------------------------------------
+ * - {@link OBJ_HOLIDAYS}           - Configuration object with fixed-date holidays for DE, CH, and AT.
+ *
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * This utility module is stateless and does not raise custom events.
+ *
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * This module does not provide any CSS variables.
  */
-
 
 /**
  * Converts various date formats into a valid JS Date object.
@@ -32,10 +56,10 @@
  *   - existing Date objects (returned as-is)
  *   - valid date strings like "18.12.2002", "12/18/2002", "18-12-2002"
  * Returns undefined for invalid or unparsable inputs.
- *
- * @private
  * @param {Date|string|number} date - The date value to parse.
- * @returns {Date|undefined} A valid Date object or undefined if invalid.
+ * @returns {Date|undefined}
+ *  - a valid Date object
+ *  - undefined if invalid.
  */
 export function parse(date) {
     // Case 1: Already a Date object → return as-is
@@ -76,13 +100,14 @@ export function parse(date) {
     return undefined;
 }
 
-
 /**
  * Determines whether the given year is a leap year.
  *
  * @param {number} year - The year to check.
- * @returns {boolean|undefined} Returns true if the year is a leap year,
- * false if not, or undefined if the input is invalid.
+ * @returns {boolean|undefined}
+ *  - true if the year is a leap year
+ *  - false if not
+ *  - undefined if the input is invalid.
  *
  * @example
  * isLeapYear(2024); // true
@@ -94,13 +119,13 @@ export function isLeapYear(year) {
     return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
 }
 
-
 /**
  * Returns the number of days in the month of the given date.
  *
  * @param {Date|string} date - The date to evaluate. Can be a Date object or a parsable date string.
- * @returns {number|undefined} Returns the number of days in the month,
- * or undefined if the input date is invalid.
+ * @returns {number|undefined}
+ *  - the number of days in the month
+ *  - undefined if the input date is invalid.
  *
  * @example
  * daysInMonth('2024-02-01'); // 29
@@ -117,13 +142,13 @@ export function daysInMonth(date) {
     return new Date(year, month + 1, 0).getDate();
 }
 
-
 /**
  * Returns the number of calendar weeks contained in the month of the given date.
  *
  * @param {Date|string} date - The date whose month should be evaluated.
- * @returns {number|undefined} Returns the number of ISO weeks in the month,
- * or undefined if the input date is invalid.
+ * @returns {number|undefined}
+ *  - the number of ISO weeks in the month
+ *  - undefined if the input date is invalid.
  *
  * @example
  * weeksPerMonth('2024-02-10'); // 5
@@ -151,10 +176,8 @@ export function weeksPerMonth(date) {
         const totalWeeks = getISOWeek(new Date(year, 11, 31));
         weeks = totalWeeks - firstWeek + lastWeek + 1;
     }
-
     return weeks;
 }
-
 
 /**
  * Returns the ISO week number of a given date.
@@ -172,15 +195,15 @@ export function getISOWeek(date) {
     return 1 + Math.ceil((firstThursday - dt) / 604800000);
 }
 
-
 /**
  * Returns the date for a specific ISO week and weekday within a given year.
  *
  * @param {number} week - ISO week number (1–53).
  * @param {number} [day=1] - Weekday (0=Sunday ... 6=Saturday) following the native JS schema.
  * @param {number} [year=new Date().getFullYear()] - Optional year. Defaults to current year.
- * @returns {Date|undefined} Returns a Date object for the specified week and weekday,
- * or undefined if parameters are invalid.
+ * @returns {Date|undefined}
+ *  - a Date object for the specified week and weekday
+ *  - undefined if parameters are invalid.
  *
  * @example
  * getDateFromWeek(1); // → Monday of week 1 in current year
@@ -205,7 +228,6 @@ export function getDateFromWeek(week, day = 1, year = new Date().getFullYear()) 
 
     // Validate year (weeks 52/53 can spill over)
     if (isNaN(targetDate)) return undefined;
-
     return targetDate;
 }
 
@@ -215,11 +237,11 @@ export function getDateFromWeek(week, day = 1, year = new Date().getFullYear()) 
  * ISO weeks start on Monday and are defined so that the first week of the year
  * is the one containing the year's first Thursday.
  *
- * @private
  * @param {number} week - The ISO week number (1–53).
  * @param {number} year - The four-digit year (e.g. 2025).
- * @returns {Date|undefined} A Date object representing the Monday of the requested week,
- * or undefined if the parameters are invalid.
+ * @returns {Date|undefined}
+ *  - a Date object representing the Monday of the requested week
+ *  - undefined if the parameters are invalid.
  *
  * @example
  * this.#getFirstDayOfISOWeek(1, 2025); // → Mon Dec 30 2024 (week 1 starts in 2024)
@@ -238,18 +260,17 @@ export function getFirstDayOfISOWeek(week, year) {
     } else {
         ISOweekStart.setDate(simple.getDate() + 8 - dow);
     }
-
     return ISOweekStart;
 }
-
 
 /**
  * Returns the first occurrence of a specific weekday within the month of the given date.
  *
  * @param {Date|string} date - The date whose month should be used as reference.
  * @param {number} weekday - Target weekday (0 = Sunday ... 6 = Saturday).
- * @returns {Date|undefined} Returns the first occurrence of that weekday,
- * or undefined if parameters are invalid.
+ * @returns {Date|undefined}
+ *  - the first occurrence of that weekday
+ *  - undefined if parameters are invalid.
  *
  * @example
  * firstWeekdayInMonth('2025-10-01', 0); // → Sun Oct 05 2025
@@ -269,18 +290,17 @@ export function firstWeekdayInMonth(date, weekday) {
     // Calculate offset to reach the desired weekday
     const offset = (weekday - firstDayWeekday + 7) % 7;
     const result = new Date(year, month, 1 + offset);
-
     return result;
 }
-
 
 /**
  * Returns the ordinal day of the year for the given date.
  * (e.g. January 1st = 1, December 31st = 365 or 366)
  *
  * @param {Date|string} date - The date to evaluate.
- * @returns {number|undefined} The day number within the year (1–366),
- * or undefined if the input date is invalid.
+ * @returns {number|undefined}
+ *  - the day number within the year (1–366)
+ *  - undefined if the input date is invalid.
  *
  * @example
  * getDayOfTheYear('2025-01-01'); // 1
@@ -296,10 +316,8 @@ export function getDayOfTheYear(date) {
 
     // Convert milliseconds to days and add 1 because Jan 1 = 1
     const dayOfYear = Math.floor(diffInMs / 86400000) + 1;
-
     return dayOfYear;
 }
-
 
 /**
  * Determines whether the given date is a workday.
@@ -309,7 +327,10 @@ export function getDayOfTheYear(date) {
  * @param {Date|string} date - The date to evaluate.
  * @param {boolean} [saturdayIsWorkday=false] - Whether Saturdays are considered workdays.
  * @param {boolean} [ignoreHolidays=false] - If true, holidays are ignored (treated as workdays).
- * @returns {boolean|undefined} True if workday, false if not, undefined for invalid date.
+ * @returns {boolean|undefined}
+ *  - true if workday
+ *  - false if not
+ *  - undefined for invalid date.
  *
  * @example
  * isWorkday('2025-10-11'); // false (Saturday, default = not workday)
@@ -333,10 +354,8 @@ export function isWorkday(date, saturdayIsWorkday = false, ignoreHolidays = fals
         const holidayName = isHoliday(d);
         if (holidayName) return false; // "" is falsy → no holiday
     }
-
     return true;
 }
-
 
 /**
  * Calculates the number of workdays within the month of the given date.
@@ -346,17 +365,13 @@ export function isWorkday(date, saturdayIsWorkday = false, ignoreHolidays = fals
  * @param {boolean} [countHolidays=false] - If true, returns an object including the number of holidays.
  * @param {boolean} [saturdayIsWorkday=false] - Whether Saturdays are considered workdays.
  * @returns {number|Object|undefined}
- * Returns:
  *   - number → count of workdays in that month
  *   - object → { workdays, holidays } if countHolidays = true
  *   - undefined → invalid input
  *
  * @example
- * getWorkdays('2025-10-01');
- * // → 23
- *
- * getWorkdays('2025-12-01', true);
- * // → { workdays: 22, holidays: 2 }
+ * getWorkdays('2025-10-01'); // → 23
+ * getWorkdays('2025-12-01', true); // → { workdays: 22, holidays: 2 }
  */
 export function getWorkdays(date, countHolidays = false, saturdayIsWorkday = false) {
     const d = (date instanceof Date) ? date : new Date(date);
@@ -402,7 +417,7 @@ export function getWorkdays(date, countHolidays = false, saturdayIsWorkday = fal
  * Calculate Easter Sunday for a given year.
  * Algorithm by Oudin (1940).
  * @param {number} year
- * @returns {Date}
+ * @returns {Date} the date of the easter sunday for the given year
  */
 export function getEasterSunday(year) {
     const f = Math.floor;
@@ -417,7 +432,6 @@ export function getEasterSunday(year) {
     return new Date(year, month - 1, day);
 }
 
-
 /**
  * Determines if a given date is a public holiday in the configured country and region.
  * Returns the holiday name as a string or an empty string if the date is not a holiday.
@@ -429,7 +443,9 @@ export function getEasterSunday(year) {
  *
  * @param {Date|string} date - Date to check.
  * @param {string} [region='global'] - Region key (lowercase, e.g. 'bayern', 'zürich', 'wien').
- * @returns {string} Holiday name or empty string if no holiday applies.
+ * @returns {string}
+ *  - the holiday name
+ *  - an empty string "" if no holiday applies.
  */
 export function isHoliday(date, region = 'global', country = 'de-DE') {
     const d = (date instanceof Date) ? date : new Date(date);
@@ -568,7 +584,6 @@ export function isHoliday(date, region = 'global', country = 'de-DE') {
     return '';
 }
 
-
 /**
  * Returns all holidays of the given month as an array of formatted strings.
  * Example: ["Neujahr (01.01.2025)", "Heilige Drei Könige (06.01.2025)"]
@@ -580,7 +595,7 @@ export function isHoliday(date, region = 'global', country = 'de-DE') {
  *
  * @param {Date|string} date - Any date within the target month.
  * @param {Object} [format] - Optional Intl.DateTimeFormat options (default: { day:'2-digit', month:'2-digit', year:'numeric' }).
- * @returns {string[]} List of holidays for that month, formatted as "Holiday (dd.mm.yyyy)".
+ * @returns {string[]} a list of holidays for that month, formatted as "Holiday (dd.mm.yyyy)".
  */
 export function getHolidaysOfMonth(date, format = { day: '2-digit', month: '2-digit', year: 'numeric' },
                                    region = 'global', country = 'de-DE') {
@@ -604,7 +619,6 @@ export function getHolidaysOfMonth(date, format = { day: '2-digit', month: '2-di
 
     return holidays;
 }
-
 
 /**
  * List of fixed-date public holidays for Germany, Switzerland, and Austria.

@@ -3,14 +3,69 @@ import { isHoliday as _isHoliday, getEasterSunday, getFirstDayOfISOWeek, OBJ_HOL
 import Library from './Library.js';
 
 /**
- * Universal Calendar Component
- * - Displays month view with weeks and weekdays
- * - Highlights current day and holidays (DACH)
- * - Emits CustomEvents for date/week clicks and month changes
+ * @file Calendar.js
+ * @module Calendar
+ * @extends Library
+ * @version 1.0.0
+ * @author Jens-Olaf-Mueller
  *
- * @fires calendarupdate - when month is changed
- * @fires ondateclick - when a date cell is clicked
- * @fires onweekclick - when a week cell is clicked
+ * Calendar - A universal, localized month-view calendar component.
+ * ===============================================================
+ *
+ * Displays a grid-based month view with week numbers, holidays, and integrated settings.
+ * - Key Features:
+ * - Localized View: Supports internationalization for weekdays and month names via `country` codes.
+ * - Holiday Support: Highlights holidays (DACH region) using internal date utilities.
+ * - Persistency: Saves and loads user preferences like country and year-picker visibility from localStorage.
+ * - Collapsible UI: Features an animated dropdown and settings overlay.
+ *
+ * ---------------------------------------------------------------
+ * I. Public Methods
+ * ---------------------------------------------------------------
+ * - {@link update}             - Renders the current month into the calendar body grid.
+ * - {@link dateAdd}            - Adds a specified number of days to a date.
+ * - {@link getEasterSunday}    - Calculates Easter Sunday for a given year.
+ * - {@link isHoliday}          - Checks if a specific date is a holiday in the given state/country.
+ * - {@link getISOWeek}         - Calculates the ISO week number for a date.
+ * - {@link getFirstDayOfISOWeek} - Returns the Monday of a specific ISO week.
+ * - {@link toggleOpen}         - Toggles the collapsed/expanded state of the calendar.
+ * - {@link toggleSettings}     - Switches between the calendar view and the settings menu.
+ * - {@link updateStates}       - Updates the state/region dropdown based on the selected country.
+ * - {@link onHeaderClick}      - Handles month and year navigation via header buttons.
+ * - {@link onBodyClick}        - Handles selection of dates and week numbers in the body grid.
+ *
+ * ---------------------------------------------------------------
+ * II. Private Methods
+ * ---------------------------------------------------------------
+ * - #loadSettings()            - Retrieves stored user settings from localStorage.
+ * - #saveSettings()            - Persists current settings to localStorage.
+ * - #changeDatePart()          - Logic for shifting months or years.
+ * - #showFullDate()            - Formats and displays the selected date in the footer.
+ * - #startOfWeek()             - Calculates the Monday of the week containing a specific date.
+ * - #applyOpenState()          - Handles the CSS transitions for expanding/collapsing the component.
+ *
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * @event calendarupdate {@link CalendarUpdateEvent} - Fires when the displayed month or year is changed.
+ * @event ondateclick {@link CalendarDateEvent}      - Fires when a specific date cell is clicked.
+ * @event onweekclick {@link CalendarWeekEvent}      - Fires when a week number cell is clicked.
+ * @event expand {@link CalendarEvent}               - Fires when the calendar is opened.
+ * @event collapse {@link CalendarEvent}             - Fires when the calendar is closed.
+ *
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * All variables are prefixed with '--cal-' and follow kebab-case naming.
+ * - --cal-background-color     - Main background of the calendar component.
+ * - --cal-text-color           - Default text color for labels and dates.
+ * - --cal-header-color         - Background color for the month/year navigation bar.
+ * - --cal-footer-color         - Background color for the date display at the bottom.
+ * - --cal-highlight-color      - Background color for current date or hovered cells.
+ * - --cal-accent-color         - Primary accent color (e.g. for the selected date).
+ * - --cal-sunday-color         - Text color for Sundays and holidays.
+ * - --cal-disabled-color       - Color for dates outside the current month.
+ * - --cal-calendar-drop-size   - Size of the dropdown toggle button.
  */
 export class Calendar extends Library {
     #country = 'de-CH';
@@ -412,3 +467,35 @@ export class Calendar extends Library {
         );
     }
 }
+
+/**
+ * @typedef {Object} CalendarEvent
+ * @property {boolean} open - Whether the calendar is opened or not
+ */
+
+/**
+ * @typedef {Object} CalendarUpdateEvent
+ * @property {Date} date - The newly selected/displayed date.
+ * @property {Date} previousDate - The date before the update.
+ * @property {number} week - ISO week of the new date.
+ */
+
+/**
+ * @typedef {Object} CalendarDateEvent
+ * @property {Date} date - Selected Date object.
+ * @property {string} dateString - Localized date string.
+ * @property {number} day - Day of the month.
+ * @property {number} month - Zero-based month index.
+ * @property {number} year - Full year.
+ * @property {number} week - ISO week number.
+ * @property {string} weekday - Full name of the weekday.
+ * @property {string} monthName - Full name of the month.
+ * @property {string} holiday - Name of the holiday (if any).
+ */
+
+/**
+ * @typedef {Object} CalendarWeekEvent
+ * @property {number} week - The clicked ISO week number.
+ * @property {Date} firstDay - Monday of the selected week.
+ * @property {Date} lastDay - Sunday of the selected week.
+ */

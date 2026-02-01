@@ -298,10 +298,133 @@ export const OBJ_COMPONENTS = {
         }
     },
     messagebox: {
-        children: [],
+        children: [{
+                element: 'BoxOverlay',
+                tag: 'div',
+                prefix: 'msg',
+                root: true,
+                protected: true,
+                style: {
+                    zIndex: 1048576,
+                    position: 'fixed',
+                    inset: 0,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    userSelect: 'none'
+                },
+                children:[
+                    {
+                        element: 'Dialog',
+                        tag: 'div',
+                        prefix: 'msg',
+                        role: 'dialog',
+                        protected: true,
+                        style: {
+                            position: 'relative',
+                            transform: 'none',
+                            display: 'inline-block',
+                            height: 'auto',
+                            wordWrap: 'break-word',
+                            backgroundColor: 'var(--msg-background-color, whitesmoke)',
+                            borderRadius: 'var(--msg-border-radius, 8px)',
+                            boxShadow: '8px 8px 16px var(--msg-shadow-color, #00000040)',
+                            padding: '0 var(--msg-box-padding, 1rem) var(--msg-box-padding, 1rem)'
+                        },
+                        children: [
+                            {
+                                element: 'Titlebar',
+                                tag: 'header',
+                                prefix: 'msg',
+                                id: '',
+                                protected: true,
+                                style: {
+                                    position: 'relative',
+                                    top: 0,
+                                    left: 'calc(-1 * var(--msg-box-padding, 1rem))',
+                                    width: 'calc(100% + 2 * var(--msg-box-padding, 1rem))',
+                                    borderRadius: 'var(--msg-border-radius, 8px) var(--msg-border-radius, 8px) 0 0',
+                                    background: `linear-gradient(to right, var(--msg-gradient-color-from, navy) 0, var(--msg-gradient-color-to, whitesmoke) 100%)`
+                                },
+                                children: [{
+                                        element: 'Caption',
+                                        tag: 'h2',
+                                        prefix: 'msg',
+                                        id: '',
+                                        style: {
+                                            margin: '0',
+                                            padding: '0.5rem 1rem',
+                                            color: 'var(--msg-title-color, inherit)'
+                                        }
+                                    },
+                                    {
+                                        element: 'CloseButton',
+                                        tag: 'button',
+                                        prefix: 'btn',
+                                        innerHTML: '&#10005;',
+                                        hidden: true,
+                                        style: {
+                                            position: 'absolute',
+                                            top: '0.5rem',
+                                            right: '0.5rem',
+                                            width: '1.75rem',
+                                            aspectRatio: '1/1',
+                                            borderRadius: '50%',
+                                            border: 'none',
+                                            cursor: 'pointer'
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                element: 'Prompt',
+                                tag: 'p',
+                                prefix: 'msg',
+                                id: '',
+                                protected: true,
+                                style: {
+                                    display: 'block',
+                                    marginBlock: '1rem',
+                                    color: 'var(--msg-text-color, inherit)',
+                                    fontWeight: 'var(--msg-font-weight, 400)'
+                                }
+                            }
+
+                        ]
+                    }
+                ]
+            }
+        ],
         css: {
             prefix: 'msg',
-            variables: []
+            variables: [
+                {textColor: 'inherit'},
+                {fontWeight: 'bold'},
+                {titleColor: 'whitesmoke'},
+                {gradientColorFrom: 'navy'},
+                {gradientColorTo: 'whitesmoke'},
+                {shadowColor: '#00000040'},
+                {backgroundColor: 'whitesmoke'},
+                {buttonBackgroundHoverColor: 'navy'},
+                {buttonTextHoverColor: 'whitesmoke'},
+                {buttonColor: '#e7e7e7'}, /* f0f0f0 buttonface */
+                {buttonBorderColor: 'lavender'},
+                {buttonBorderRadius: '4px'},
+                {closeButtonHoverBg: '#0000001a'},
+                {closeButtonX: 'inherit'},
+                {borderRadius: '8px'},
+                {boxPadding: '1rem'},
+                {fadeDuration: '400ms'},
+                {fadeTiming: 'ease'},
+            ],
+            textContent: `
+            /* Default: visible without fade */
+            #msgDialog { position: relative; opacity: 1; transform: none; }
+            /* Fade mode only when class "fade" is present */
+            #msgDialog.fade { opacity: 0; transform: scale(0.95); transition: opacity var(--msg-fade-duration, 300ms) var(--msg-fade-timing, ease), transform var(--msg-fade-duration, 300ms) var(--msg-fade-timing, ease); }
+            #msgDialog.fade.visible { opacity: 1; transform: scale(1); }
+            #btnCloseButton { color: var(--msg-close-button-x, inherit); background-color: transparent; }
+            #btnCloseButton:hover { background-color: var(--msg-close-button-hover-bg, #0000001a); filter: brightness(0.8); }`
         }
     },
     calculator: {
@@ -386,7 +509,7 @@ export const OBJ_COMPONENTS = {
             variables: [
                 {gridGap: '0.9rem'},
                 {buttonWidth: '3.4rem'},
-                {buttonHeigth: '2.75rem'},
+                {buttonHeight: '2.75rem'},
                 {buttonBorderRadius: '0.5rem'},
                 {buttonDoubleBorderRadius: '0.5rem'},
                 {buttonBgColor: '#ecf0f3'},

@@ -2,45 +2,56 @@ import { WheelGenerator } from './WheelGenerator.js';
 import { NOT_FOUND } from '../constants.js';
 
 /**
- * Wheel — Scrollable wheel column with snap + 3D visual effect
- * ===============================================================
+ * @file Wheel.js
+ * @module Wheel
+ * @extends WheelGenerator
+ * @version 1.0.0
+ * @author Jens-Olaf-Mueller
  *
- * Implements a single wheel/column inside the WheelPicker overlay.
- * The wheel renders a list of items (<li>) into an existing column structure
- * and provides scroll/click interaction with automatic snapping to the
- * nearest item. Optionally supports "wrap" behavior via cloning for an
- * endless-feeling scroll, or finite mode with dummy padding items.
+ * Wheel — Scrollable UI column with automated snapping and 3D visual effects.
+ * ===========================================================================
  *
- * Core responsibilities:
- * - build the list from a role-specific wheel config (via ListGenerator)
- * - manage virtual vs. real indices for endless scroll
- * - detect scroll end and snap to nearest row
- * - apply the 3D transform styling based on active virtual position
- * - notify the WheelPicker via `onSnap` callback when the stable value changes
- * - provide programmatic snapping via `snapToValue()`
+ * Implements a single interactive wheel/column within the WheelPicker.
+ * It manages hardware-accelerated scrolling, localized snapping, and virtual infinite loops.
+ * - Key Features:
+ *   - 3D Transformation: Applies dynamic `rotateX`, `translateZ`, and `opacity` to simulate a physical cylinder.
+ *   - Infinite Scroll (Wrap): Uses a triple-block cloning strategy and silent recentering to emulate endless rotation.
+ *   - Snap Engine: Features a debounced scroll listener that automatically stabilizes the wheel on the nearest logical item.
+ *   - Haptic Feedback: Triggers tactile 'tick' effects via the integrated Haptic engine during scroll updates.
+ *   - Adaptive Layout: Automatically measures item heights and viewport constraints to center the selection window.
  *
  * ---------------------------------------------------------------
  * I. Public Methods
  * ---------------------------------------------------------------
- * - {@link snapToValue}         - programmatically scrolls/snaps to a given logical value
+ * - {@link snapToValue} - Programmatically scrolls and snaps the wheel to a specific logical value.
  *
  * ---------------------------------------------------------------
  * II. Private Methods
  * ---------------------------------------------------------------
- * {@link #init}                - initializes wheel state, renders items, measures layout, attaches events, sets initial position
- * #cloneItems:         - creates the virtual item set (wrap clones or finite dummies) and replaces list DOM
- * #measure:            - measures item height, visible row count, center offset, and block size for recentering
- * #attachEvents:       - attaches scroll and click event handlers to column/list
- * #handleScroll:       - scroll handler; updates active state, recenters (wrap), and schedules snap
- * #handleItemClick:    - click handler; smooth-scrolls to clicked item’s virtual index
- * #updateFromScroll:   - derives active virtual index and real index from scrollTop; triggers 3D update
- * #apply3DEffect:      - applies per-item transforms/opacity and toggles active class around the center row
- * #recentreIfNeeded:   - keeps scrollTop inside the middle block in wrap mode to emulate endless scrolling
- * #scheduleSnap:       - debounce timer to detect scroll end and trigger snapping
- * #snapToNearest:      - computes the nearest virtual index and snaps to it
- * #scrollToVirtualIndex:- scrolls the column so the given virtual index lands in the selection window
- * #loadWheel:          - loads the role config, creates list items, and sets the start index for initial selection
- * #doHaptic:           - placeholder hook for haptic feedback integration
+ * - #init()                - Orchestrates the initial rendering, measurement, and event binding.
+ * - #cloneItems()          - Prepares the DOM structure for either infinite wrapping or finite padded scrolling.
+ * - #measure()             - Calculates critical layout metrics like item height and center offsets.
+ * - #attachEvents()        - Binds native scroll and click listeners to the column and list elements.
+ * - #handleScroll()        - Orchestrates 3D updates, recentering logic, and the snapping scheduler during interaction.
+ * - #handleItemClick()     - Smoothly centers the wheel on a specifically clicked item.
+ * - #updateFromScroll()    - Derives active indices from the current scroll position and triggers visual updates.
+ * - #apply3DEffect()       - Applies CSS transforms and opacity based on an item's distance from the center row.
+ * - #recentreIfNeeded()    - Silently resets scroll position in wrap-mode to maintain the infinite loop illusion.
+ * - #scheduleSnap()        - Debounces the scroll-end detection to prevent premature snapping.
+ * - #snapToNearest()       - Computes the final target position and initiates the snap animation.
+ * - #scrollToVirtualIndex()- Performs the actual scroll operation (smooth or instant) to a specific index.
+ * - #loadWheel()           - Populates the wheel with items based on the assigned role configuration.
+ *
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * This class uses the `onSnap` callback to communicate with the WheelPicker.
+ * - onSnap {Object} - Includes role, logical value, index, and wheel reference.
+ *
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * Theming is centrally managed by the `WheelPicker`. Individual wheels use the `--wheel-` variables.
  */
 export class Wheel extends WheelGenerator {
     #snapTimer = null; // Intern: Timer zum Erkennen von "Scroll-Ende"

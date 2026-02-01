@@ -100,6 +100,12 @@
     transform: translate(2px, 3px);
 }
 
+.msg-button:focus-visible {
+    outline: 1px dotted #444;
+    outline-offset: -4px;
+    outline-style: dotted;
+}
+
 /* styling the optional close button */
 #msg-btn-close {
     position: absolute;

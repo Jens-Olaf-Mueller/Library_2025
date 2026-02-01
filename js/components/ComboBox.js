@@ -1,208 +1,83 @@
-/**
- * ComboBox Web Component (Hybrid: custom UL/LI + native SELECT fallback)
- *
- * Priorities:
- * - Preserve original API & comments as much as possible
- * - Fix real bugs; Each change is annotated with a German "Bugfix" comment
- * - No feature creep; extra UX/A11y later
- *
- * Modes:
- * - mode="auto" (default): iOS -> native, otherwise custom
- * - mode="custom": always UL/LI
- * - mode="native": always <select>
- *
- */
-
 import Library from '../classes/Library.js';
 
-const TMP_COMBOSTYLE = document.createElement('template'),
-	TMP_PLUSSIGN = document.createElement('template'),
-	TMP_ARROW = document.createElement('template'),
-	TMP_CLOSE = document.createElement('template');
-
-TMP_COMBOSTYLE.innerHTML = `
-	<style>
-		:host {
-			display: inline-block;
-			border: 1px solid silver;
-			padding: 0;
-			position: relative; /* needed for outside-click hit testing and stacking contexts */
-		}
-
-		/* Bugfix: Tippfehler korrigiert. Früher: :host:(input:disabled) — das war ungültig */
-		:host(:disabled) {
-			border: 2px solid red;
-		}
-
-		/* Hybrid: In native-Mode zeigen wir <select>, in custom-Mode den bisherigen Wrapper */
-		:host([mode="native"]) #divCombo { display: none; }
-		:host([mode="native"]) select.jom-select { display: inline-block; }
-		:host([mode="custom"]) select.jom-select,
-		:host([mode="auto"])   select.jom-select { display: none; }
-
-		#divCombo.jom-combo {
-			height: 100%;
-			display: inline-block;
-			position: relative;
-			border-radius: inherit;
-			width: 100%;
-			box-sizing: border-box;
-		}
-
-		#inpCombo.jom-input {
-			height: 100%;
-			padding: 0 0 0 0.5rem;
-			outline: none;
-			border: none;
-			border-radius: inherit;
-			font: inherit;
-			width: 100%;
-			box-sizing: border-box;
-		}
-
-		.jom-input:disabled {
-			background-color: field;
-			color: fieldtext;
-		}
-
-		/* DropDown-Liste (Overlay) */
-		.jom-combo ul {
-			position: absolute;
-			width: 100%;
-			z-index: 1000;
-			list-style: none;
-			padding: unset;
-			margin: unset;
-			margin-top: 1px;
-			overflow-y: hidden;
-			box-sizing: border-box;
-			background: var(--combo-list-background, field);
-            /* smooth open-close animation via max-height */
-            transition: max-height 180ms ease;
-            will-change: max-height;
-		}
-
-		/* Bugfix: :has(li) entfernt (Support/Performance). Stattdessen toggeln wir .has-items per JS */
-		.jom-combo ul.has-items {
-			border-bottom: 1px solid silver;
-		}
-
-		.jom-combo ul.scroll {
-			overflow-y: auto; /* Bugfix: 'scroll' -> 'auto' verhindert unnötige Scrollbars */
-		}
-
-        /* Bugfix: Während der Animation keine Scrollbars/Interaktion */
-        .jom-combo ul.animating {
-            overflow: hidden !important;
-            pointer-events: none;
-        }
-
-		li.jom-list-item {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			border-left: 1px solid silver;
-			border-right: 1px solid silver;
-			background-color: var(--combo-list-background, field);
-			padding: var(--combo-item-padding, 0.25rem 0.5rem);
-		}
-
-		li.jom-list-item:last-child {
-			border-bottom: 1px solid silver;
-		}
-
-		li.jom-list-item[selected] {
-			color: var(--combo-selected-color, white);
-			background-color: var(--combo-selected-background-color, #0075ff);
-		}
-
-		.combo-icon {
-			position: absolute;
-			height: var(--combo-arrow-size, 1.25rem);
-			width: var(--combo-arrow-size, 1.25rem);
-			top: 50%;
-			transform: translateY(-50%);
-			right: 1px;
-			cursor: pointer;
-			z-index: 1001; /* Bugfix: z-index reduziert und leicht über UL */
-		}
-
-		#divArrow {
-			transition: transform 350ms ease;
-		}
-
-		:host([open]) #divArrow {
-			transform: rotate(180deg) translateY(50%)
-		}
-
-		.combo-delete {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			aspect-ratio: 1 / 1;
-			height: 0.75rem;
-			cursor: pointer;
-		}
-
-		.combo-delete:hover svg {
-			mix-blend-mode: exclusion;
-			fill: var(--combo-selected-color, white);
-			transform: scale(1.25);
-		}
-
-		.combo-icon svg {
-			stroke: var(--combo-accent-color, #0075ff);
-			fill: var(--combo-accent-color, #0075ff);
-		}
-
-		:host([disabled]) svg {
-			stroke: #aaa;
-			fill: #aaa;
-		}
-
-		:host([hidden]), [hidden] {
-			display: none;
-		}
-
-		/* Native SELECT Style (sichtbar nur in mode="native") */
-		select.jom-select {
-			height: 100%;
-			width: 100%;
-			font: inherit;
-			border: none;
-			background: field;
-			color: fieldtext;
-			border-radius: inherit;
-			box-sizing: border-box;
-			padding: 0 0.5rem;
-		}
-	</style>`;
-
-TMP_PLUSSIGN.innerHTML = `
-	<div id="divPlus" class="combo-icon" hidden>
-		<svg xmlns="http://www.w3.org/2000/svg"
-			viewBox="0 0 200 200"
-			stroke-width="20">
-			<path d="M40 100 h120 M100 40 v120z"/>
-		</svg>
-	</div>`;
-
-TMP_ARROW.innerHTML = `
-	<div id="divArrow" class="combo-icon" hidden>
-		<svg xmlns="http://www.w3.org/2000/svg"
-			id="svgArrow"
-			viewBox="0 0 100 100">
-			<path d="M20 35 l30 30 l30-30z"/>
-		</svg>
-	</div>`;
-
-TMP_CLOSE.innerHTML = `
-	<svg xmlns="http://www.w3.org/2000/svg"
-		viewBox="0 0 16 16"
-		fill="#000000A0">
-		<path d="M8 8.707l3.646 3.647.708-.707L8.707 8l3.647-3.646-.707-.708L8 7.293 4.354 3.646l-.707.708L7.293 8l-3.646 3.646.707.708L8 8.707z"/>
-	</svg>`;
-
+/**
+ * @file ComboBox.js
+ * @module ComboBox
+ * @version 1.3.0
+ * @author Jens-Olaf-Mueller
+ *
+ * ComboBox — Hybrid Form Control (Custom UI + Native Fallback).
+ * ==============================================================================
+ *
+ * A sophisticated Web Component that acts as a hybrid between a flexible custom dropdown (`<ul>/<li>`)
+ * and a native browser `<select>`. It is fully form-associated via `ElementInternals`.
+ * - Key Features:
+ *  - Hybrid Mode: Automatically switches to native `<select>` on iOS to ensure usability, while offering a rich custom UI on desktop.
+ *  - Form Association: Uses `attachInternals` to participate natively in HTML forms (validation, submission).
+ *  - Dynamic Data: Accepts options as Arrays, CSV strings, or JSON, and supports live adding/removing of items.
+ *  - Search & Filter: The input field filters the dropdown list in real-time.
+ *  - Extendable: Allows users to add new values dynamically via the UI (if enabled).
+ *  - A11y Support: Implements ARIA roles (`combobox`, `listbox`) and keyboard navigation (Arrow keys, Enter, Esc).
+ *
+ * ---------------------------------------------------------------
+ * I. Public API
+ * ---------------------------------------------------------------
+ * - {@link options}      - Getter/Setter for the data list (Array, CSV, JSON).
+ * - {@link value}        - Current selected value (syncs with internal input or select).
+ * - {@link mode}         - 'auto' (hybrid), 'native' (always select), or 'custom' (always UL).
+ * - {@link type}         - 'combo' (text input allowed) or 'list' (strict selection).
+ * - {@link extendable}   - Boolean; allows adding new items via the UI.
+ * - {@link sorted}       - Boolean; automatically sorts the displayed list.
+ * - {@link disabled}     - Disables interaction and styles.
+ * - {@link size}         - Limits the maximum number of visible items (scrollable).
+ * - {@link addListItem}  - Manually adds a new item to the options.
+ * - {@link removeListItem}- Manually removes an item by value.
+ * - {@link expand}       - Opens the dropdown list.
+ * - {@link collapse}     - Closes the dropdown list with animation.
+ *
+ * ---------------------------------------------------------------
+ * II. Internal Logic
+ * ---------------------------------------------------------------
+ * - #syncSelectOptions() - Synchronizes the custom `options` array with the hidden native `<select>`.
+ * - #highlightSelectedItem() - Manages visual focus and scrolling within the custom list.
+ * - #animateOpen()       - Uses `requestAnimationFrame` for smooth opening transitions.
+ * - #animateClose()      - Uses `requestAnimationFrame` for smooth closing transitions.
+ * - #raiseEvent()        - Dispatches events with normalized details for both native and custom modes.
+ *
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * @event select {Object}     - Fires when an item is chosen.
+ * @event addItem {Object}    - Fires when a new item is added to the list.
+ * @event removeItem {Object} - Fires when an item is removed.
+ * @event expand {Object}     - Fires when the dropdown opens.
+ * @event close {Object}      - Fires when the dropdown closes.
+ *
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * - --combo-list-background          - Background color of the dropdown list.
+ * - --combo-item-padding             - Padding for individual list items.
+ * - --combo-selected-color           - Text color of the selected item.
+ * - --combo-selected-background-color- Background color of the selected item.
+ * - --combo-arrow-size               - Size of the dropdown arrow icon.
+ * - --combo-accent-color             - Main accent color for icons.
+ *
+ * ---------------------------------------------------------------
+ * V. ToDo / Technical Debt (Refactoring Roadmap)
+ * ---------------------------------------------------------------
+ * 1. Inheritance Strategy: The class uses `Object.assign` to mix in `Library.prototype` post-definition.
+ * This prevents the `Library` constructor from running, necessitating manual DOM caching duplications.
+ * -> Refactor to a proper Mixin pattern or explicit inheritance if possible.
+ * 2. Redundancy / Shadowing: Several methods (`toBoolean`, DOM helpers) are re-implemented locally,
+ * shadowing the Library versions. This is due to the component predating the Library.
+ * -> Remove local duplicates and rely on the Library's utility methods.
+ * 3. Hybrid Complexity: Maintaining two parallel DOM structures (Custom List + Native Select) for Safari support
+ * creates high synchronization complexity (`#syncSelectOptions`).
+ * -> Investigate strict `<option>`-only styling or `slot`-based approaches to reduce "double bookkeeping".
+ * 4. DOM Construction: The code mixes `document.createElement` (legacy) with `<template>` cloning.
+ * -> Unify the DOM creation logic (ideally using `Library.renderUI` or pure Templates).
+ */
 class ComboBox extends HTMLElement {
 	#size = 6;
 	#type = 'combo';
@@ -1380,6 +1255,195 @@ class ComboBox extends HTMLElement {
 Object.assign(ComboBox.prototype, Library.prototype); // inject (mixin) Library methods to the ComboBox-element!
 // mixinClass(ComboBox, Library);
 customElements.define('combo-box', ComboBox);
+
+const TMP_COMBOSTYLE = document.createElement('template'),
+	TMP_PLUSSIGN = document.createElement('template'),
+	TMP_ARROW = document.createElement('template'),
+	TMP_CLOSE = document.createElement('template');
+
+TMP_COMBOSTYLE.innerHTML = `
+	<style>
+		:host {
+			display: inline-block;
+			border: 1px solid silver;
+			padding: 0;
+			position: relative; /* needed for outside-click hit testing and stacking contexts */
+		}
+
+		/* Bugfix: Tippfehler korrigiert. Früher: :host:(input:disabled) — das war ungültig */
+		:host(:disabled) {
+			border: 2px solid red;
+		}
+
+		/* Hybrid: In native-Mode zeigen wir <select>, in custom-Mode den bisherigen Wrapper */
+		:host([mode="native"]) #divCombo { display: none; }
+		:host([mode="native"]) select.jom-select { display: inline-block; }
+		:host([mode="custom"]) select.jom-select,
+		:host([mode="auto"])   select.jom-select { display: none; }
+
+		#divCombo.jom-combo {
+			height: 100%;
+			display: inline-block;
+			position: relative;
+			border-radius: inherit;
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		#inpCombo.jom-input {
+			height: 100%;
+			padding: 0 0 0 0.5rem;
+			outline: none;
+			border: none;
+			border-radius: inherit;
+			font: inherit;
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		.jom-input:disabled {
+			background-color: field;
+			color: fieldtext;
+		}
+
+		/* DropDown-Liste (Overlay) */
+		.jom-combo ul {
+			position: absolute;
+			width: 100%;
+			z-index: 1000;
+			list-style: none;
+			padding: unset;
+			margin: unset;
+			margin-top: 1px;
+			overflow-y: hidden;
+			box-sizing: border-box;
+			background: var(--combo-list-background, field);
+            /* smooth open-close animation via max-height */
+            transition: max-height 180ms ease;
+            will-change: max-height;
+		}
+
+		/* Bugfix: :has(li) entfernt (Support/Performance). Stattdessen toggeln wir .has-items per JS */
+		.jom-combo ul.has-items {
+			border-bottom: 1px solid silver;
+		}
+
+		.jom-combo ul.scroll {
+			overflow-y: auto; /* Bugfix: 'scroll' -> 'auto' verhindert unnötige Scrollbars */
+		}
+
+        /* Bugfix: Während der Animation keine Scrollbars/Interaktion */
+        .jom-combo ul.animating {
+            overflow: hidden !important;
+            pointer-events: none;
+        }
+
+		li.jom-list-item {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			border-left: 1px solid silver;
+			border-right: 1px solid silver;
+			background-color: var(--combo-list-background, field);
+			padding: var(--combo-item-padding, 0.25rem 0.5rem);
+		}
+
+		li.jom-list-item:last-child {
+			border-bottom: 1px solid silver;
+		}
+
+		li.jom-list-item[selected] {
+			color: var(--combo-selected-color, white);
+			background-color: var(--combo-selected-background-color, #0075ff);
+		}
+
+		.combo-icon {
+			position: absolute;
+			height: var(--combo-arrow-size, 1.25rem);
+			width: var(--combo-arrow-size, 1.25rem);
+			top: 50%;
+			transform: translateY(-50%);
+			right: 1px;
+			cursor: pointer;
+			z-index: 1001; /* Bugfix: z-index reduziert und leicht über UL */
+		}
+
+		#divArrow {
+			transition: transform 350ms ease;
+		}
+
+		:host([open]) #divArrow {
+			transform: rotate(180deg) translateY(50%)
+		}
+
+		.combo-delete {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			aspect-ratio: 1 / 1;
+			height: 0.75rem;
+			cursor: pointer;
+		}
+
+		.combo-delete:hover svg {
+			mix-blend-mode: exclusion;
+			fill: var(--combo-selected-color, white);
+			transform: scale(1.25);
+		}
+
+		.combo-icon svg {
+			stroke: var(--combo-accent-color, #0075ff);
+			fill: var(--combo-accent-color, #0075ff);
+		}
+
+		:host([disabled]) svg {
+			stroke: #aaa;
+			fill: #aaa;
+		}
+
+		:host([hidden]), [hidden] {
+			display: none;
+		}
+
+		/* Native SELECT Style (sichtbar nur in mode="native") */
+		select.jom-select {
+			height: 100%;
+			width: 100%;
+			font: inherit;
+			border: none;
+			background: field;
+			color: fieldtext;
+			border-radius: inherit;
+			box-sizing: border-box;
+			padding: 0 0.5rem;
+		}
+	</style>`;
+
+TMP_PLUSSIGN.innerHTML = `
+	<div id="divPlus" class="combo-icon" hidden>
+		<svg xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 200 200"
+			stroke-width="20">
+			<path d="M40 100 h120 M100 40 v120z"/>
+		</svg>
+	</div>`;
+
+TMP_ARROW.innerHTML = `
+	<div id="divArrow" class="combo-icon" hidden>
+		<svg xmlns="http://www.w3.org/2000/svg"
+			id="svgArrow"
+			viewBox="0 0 100 100">
+			<path d="M20 35 l30 30 l30-30z"/>
+		</svg>
+	</div>`;
+
+TMP_CLOSE.innerHTML = `
+	<svg xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 16 16"
+		fill="#000000A0">
+		<path d="M8 8.707l3.646 3.647.708-.707L8.707 8l3.647-3.646-.707-.708L8 7.293 4.354 3.646l-.707.708L7.293 8l-3.646 3.646.707.708L8 8.707z"/>
+	</svg>`;
+
 
 /**
  * @summary `Events, raised by the ComboBox class`

@@ -3,3 +3,5 @@ scan.mjs
 .DS_Store
 _AssetScanner.mjs
 _LoadManager.js
+_Calculator.js
+_MessageBox.js

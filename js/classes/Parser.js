@@ -9,6 +9,53 @@
  * - {@link parse}
  *
  */
+/**
+ * @file Parser.js
+ * @module Parser
+ * @version 1.0.0
+ * @author Jens-Olaf-Mueller
+ *
+ * Parser — Safe mathematical expression evaluator.
+ * ===============================================================
+ *
+ * Implementation of the Shunting-Yard algorithm to convert infix expressions into Reverse Polish Notation (RPN).
+ * - Key Features:
+ * - Operator Support:
+ *   - addition (+)
+ *   - subtraction (-)
+ *   - multiplication (*, ×)
+ *   - division (/, ÷)
+ *   - modulo (%)
+ *   - parentheses
+ *   - unary minus
+ * - Advanced Logic: Supports parentheses for grouping and unary minus for negative numbers.
+ * - Sanitization: Normalizes input by removing invalid characters and mapping localized operators.
+ * - Precision: Includes configurable symmetric rounding to handle floating-point inaccuracies.
+ *
+ * ---------------------------------------------------------------
+ * I. Public Methods
+ * ---------------------------------------------------------------
+ * - {@link parse} - Evaluates a mathematical string and returns a numeric result or an Error object.
+ *
+ * ---------------------------------------------------------------
+ * II. Private Methods (Internal Logic)
+ * ---------------------------------------------------------------
+ * - #normalize(input)  - Sanitizes input strings and maps characters like '×' to '*'.
+ * - #tokenize(expr)    - Breaks the expression into numeric and operator tokens.
+ * - #toRPN(tokens)     - Shunting-Yard algorithm: converts tokens to Reverse Polish Notation.
+ * - #evalRPN(rpn)      - Evaluates the RPN stack to calculate the final result.
+ * - #round(num)        - Applies precision-based rounding using Number.EPSILON.
+ *
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * This component does not raise any custom events.
+ *
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * This component does not provide any CSS variables.
+ */
 export class Parser {
     /**
      * Creates a new Parser instance.

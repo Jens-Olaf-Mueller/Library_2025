@@ -1,4 +1,44 @@
 /**
+ * @file utils.js
+ * @module utils
+ * @version 1.5.0
+ * @author Jens-Olaf-Mueller
+ *
+ * utils — Universal functional toolkit for DOM, Math, and Strings.
+ * ===============================================================
+ *
+ * A collection of stateless utility functions providing a robust abstraction layer for common web tasks.
+ * - Key Features:
+ * - Unified Selector: The `$` function simplifies DOM queries (ID, Class, Tag, Selector) into a single interface.
+ * - Localization: `format$` provides high-precision currency and number formatting with auto-decimal padding.
+ * - Math Extensions: Extends the native Math object with precision rounding (`roundDec`).
+ * - Template Loader: `includeHTML` enables asynchronous injection of HTML fragments into the DOM.
+ *
+ * ---------------------------------------------------------------
+ * I. Exported Functions
+ * ---------------------------------------------------------------
+ * - {@link $}             - Universal DOM selector for IDs, classes, tags, and CSS-queries.
+ * - {@link format$}       - Formats numbers into localized currency or decimal strings with grouping.
+ * - {@link includeHTML}   - Asynchronously loads and injects external HTML templates into the document.
+ * - {@link Math.roundDec} - Static extension to round numbers to a specific number of decimal places.
+ *
+ * ---------------------------------------------------------------
+ * II. Internal Helper Methods
+ * ---------------------------------------------------------------
+ * - none
+ *
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * This utility module does not raise custom events.
+ *
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * This module does not provide any CSS variables.
+ */
+
+/**
  * Universal 'all-in-one' function that unites the DOM-functions
  *  - document.getElementById
  *  - document.getElementsByTagName
@@ -14,15 +54,15 @@
  * determines which child of the found nodelist or HTML-collection
  * is supposed to be returned. A number returns the child of the given index. A tilde '~' or the
  * string expression ':last-child' returns the last child of the list / collection.
- * @returns a single element (if selector is a valid ID or child is specified)
+ * @returns {HTMLElement|HTMLElement[]|NodeList|null} a single element (if selector is a valid ID or child is specified)
  * in all other cases a zero-based nodelist or HTML-collection, matching the selector-parameter
  * If the list contains ONLY ONE element, this element is returned only!
  * @example $('main-content')     -   returns an element with ID 'main-content'
  *          $('div','~')          -   returns the last div-container of the document
  *          $('a',0)              -   returns the first link (<a>-element</a>)
- *          $('div.myClass')      -   returns a list of all divs that have the CSS-class "myClass"
- *          $('div.myClass','~')  -   returns last div containing class 'myClass'
- *          $('.clsNames',3)      -   returns the 4th(!) child of the wanted class list
+ *          $('div.myClass')      -   returns a list from all divs that have the CSS_class "myClass".
+ *          $('div.myClass','~')  -   returns last div containing CSS_class "myClass".
+ *          $('.clsNames',3)      -   returns the 4th(!) child of the wanted class_list
  *          $('input[type=text]') -   returns a list with all input elements, being text fields
  *          $('[name]')           -   returns a list with all elements, having a 'name' attribute
  */
@@ -115,17 +155,160 @@ export function addGlobalEventListeners(type, selector, callback, parent = docum
  * @returns {string} Formatted output
  * @see {@link https://www.youtube.com/watch?v=cdGxTJo5cNI}
  */
-export function format$(expression, format = '#,##', locale = 'de-DE') {
-    const pad = val => val.toString().padStart(2, '0');
-    const sep = (type) => new Intl.NumberFormat(locale).formatToParts(1000.1).find(p => p.type === type)?.value;
+// export function format$(expression, format = '#,##', options = {locale:'de-DE', useGrouping: false}) {
+//     // for legacy reasons:
+//     if (typeof options === 'string') {
+//         const opt$ = options;
+//         options = {};
+//         options.locale = opt$;
+//         console.warn(`[utils.format$]: Deprecated call!\nChange parameter "options" to object in calling function!\nUse: options.locale = '${opt$}' instead!`)
+//     }
 
-    // Handle empty input as zero
-    if (expression === '') expression = 0;
+//     const pad = val => val.toString().padStart(2, '0');
+//     // determine decimal separator and thousand group char
+//     const getSeparator = (type) => new Intl.NumberFormat(options.locale)
+//         .formatToParts(1000.1).find(p => p.type === type)?.value;
+//     const decimalSep = getSeparator('decimal');
+//     const groupSep   = getSeparator('group');
+//     const separators = (format.split(decimalSep).length - 1);
+
+//     // Handle empty or missing input as zero
+//     if (expression === '' || expression === undefined) expression = 0;
+
+//     // === DATE FORMATTING ===
+//     if (expression instanceof Date) {
+//         if (format.includes('#')) format = 'dd.mm.yyyy'; // fallback
+//         const tokens = {
+//             yyyy: expression.getFullYear(),
+//             mmmm: expression.toLocaleString(options.locale, { month: 'long' }),
+//             mm: pad(expression.getMonth() + 1),
+//             m: expression.getMonth() + 1,
+//             dddd: expression.toLocaleString(options.locale, { weekday: 'long' }),
+//             ddd: expression.toLocaleString(options.locale, { weekday: 'short' }),
+//             dd: pad(expression.getDate()),
+//             d: expression.getDate(),
+//             HH: pad((expression.getHours() % 12) || 12),
+//             H: (expression.getHours() % 12) || 12,
+//             hh: pad(expression.getHours()),
+//             h: expression.getHours(),
+//             nn: pad(expression.getMinutes()),
+//             n: expression.getMinutes(),
+//             ss: pad(expression.getSeconds()),
+//             s: expression.getSeconds(),
+//             aa: expression.getHours() >= 12 ? 'pm' : 'am'
+//         };
+//         return format.replace(new RegExp(Object.keys(tokens).join('|'), 'g'), m => tokens[m]);
+//     }
+
+//     const isMask = typeof format === 'string' && format.includes('#') && (separators === 0 || separators > 1);
+
+//     // === MASKED FORMAT (VB6 Style) ===
+//     if (isMask) {
+//         // Remove all non-numeric characters from expression and convert to string
+//         let digits = String(expression).replace(/\D/g, '');
+
+//         // Count required digits in mask
+//         const requiredDigets = (format.match(/#/g) || []).length;
+//         digits = digits.padStart(requiredDigets, '0'); // Left-pad with zeros if necessary
+
+//         let result = '';
+//         // Iterate through the mask
+//         for (let i = 0, idx = 0; i < format.length; i++) {
+//             const char = format[i];
+//             if (char === '#') {
+//                 result += digits[idx] || ''; // Replace # with current digit
+//                 idx++;
+//             } else {
+//                 result += char; // Keep literal characters (-, space, DE, etc.)
+//             }
+//         }
+//         return result;
+//     }
+
+//     // === NUMBER FORMAT ===
+//     const value = parseFloat(expression);
+//     if (!Number.isFinite(value)) return String(expression);
+//     const [intPartRaw, fracPartRaw = ''] = value
+//         .toLocaleString(options.locale, { useGrouping: false })
+//         .replace('.', decimalSep)
+//         .split(decimalSep);
+
+//     const [fmtInt = '', fmtFrac = ''] = format.split(decimalSep);
+
+//     // Pad integer part
+//     let intFormatted = '',
+//         intPart = intPartRaw.padStart(fmtInt.replace(/[^#]/g, '').length, '0'),
+//         i = intPart.length - 1,
+//         digitCount = 0;
+//     // iterating backwards over the formatted integer part of the expression
+//     for (let c = fmtInt.length - 1; c >= 0; c--) {
+//         const fmtChar = fmtInt[c];
+//         if (fmtChar === '#') {
+//             const digit = i >= 0 ? intPart[i] : '0';
+//             intFormatted = digit + intFormatted;
+//             i--;
+//             digitCount++;
+//             // as long as we got digits, add the group char after every 3rd
+//             if (digitCount % 3 === 0 && i >= 0) intFormatted = groupSep + intFormatted;
+//         } else {
+//             // other chars in format string (i. e. currency signs)
+//             intFormatted = fmtChar + intFormatted;
+//         }
+//     }
+
+//     // Remaining digits (if intPart is longer than formatInt)
+//     while (i >= 0) {
+//         if (digitCount % 3 === 0) intFormatted = groupSep + intFormatted;
+//         intFormatted = intPart[i] + intFormatted;
+//         i--;
+//         digitCount++;
+//     }
+
+//     // Format fraction part
+//     let fracFormatted = '';
+//     for (let c = 0; c < fmtFrac.length; c++) {
+//         fracFormatted += (fmtFrac[c] === '#' ? fracPartRaw[c] || '0' : fmtFrac[c]);
+//     }
+//     return intFormatted + (fracFormatted ? decimalSep + fracFormatted : '');
+// }
+
+/**
+ * Universal formatting utility for dates, masked strings, and numbers.
+ * Supports localized number formatting with optional digit grouping (thousands separator).
+ *
+ * @param {Date|number|string} expression - The value to be formatted.
+ * @param {string} [format='#,##'] - The format pattern or mask.
+ * @param {object} [options] - Configuration object.
+ * @param {string} [options.locale='de-DE'] - Locale for names and separators.
+ * @param {boolean} [options.useGrouping=false] - Whether to use thousands separators in numbers.
+ * @returns {string} The formatted output.
+ */
+export function format$(expression, format = '#,##', options = {locale: 'de-DE', useGrouping: false}) {
+    // for legacy reasons:
+    if (typeof options === 'string') {
+        const opt$ = options;
+        options = { locale: opt$, useGrouping: false };
+        console.warn(`[utils.format$]: Deprecated call!\nChange parameter "options" to object in calling function!\nUse: options.locale = '${opt$}' instead!`);
+    }
+
+    // ensure default values if options object is partially provided
+    const locale = options.locale || 'de-DE';
+    const useGrouping = options.useGrouping ?? false;
+
+    const pad = val => val.toString().padStart(2, '0');
+    // determine decimal separator and thousand group char
+    const getSeparator = (type) => new Intl.NumberFormat(locale)
+        .formatToParts(1000.1).find(p => p.type === type)?.value;
+    const decimalSep = getSeparator('decimal');
+    const groupSep   = getSeparator('group');
+    const separators = (format.split(decimalSep).length - 1);
+
+    // Handle empty or missing input as zero
+    if (expression === '' || expression === undefined) expression = 0;
 
     // === DATE FORMATTING ===
     if (expression instanceof Date) {
         if (format.includes('#')) format = 'dd.mm.yyyy'; // fallback
-
         const tokens = {
             yyyy: expression.getFullYear(),
             mmmm: expression.toLocaleString(locale, { month: 'long' }),
@@ -145,15 +328,37 @@ export function format$(expression, format = '#,##', locale = 'de-DE') {
             s: expression.getSeconds(),
             aa: expression.getHours() >= 12 ? 'pm' : 'am'
         };
-
         return format.replace(new RegExp(Object.keys(tokens).join('|'), 'g'), m => tokens[m]);
+    }
+
+    const isMask = typeof format === 'string' && format.includes('#') && (separators === 0 || separators > 1);
+
+    // === MASKED FORMAT (VB6 Style) ===
+    if (isMask) {
+        // Remove all non-numeric characters from expression and convert to string
+        let digits = String(expression).replace(/\D/g, '');
+
+        // Count required digits in mask
+        const requiredDigets = (format.match(/#/g) || []).length;
+        digits = digits.padStart(requiredDigets, '0'); // Left-pad with zeros if necessary
+
+        let result = '';
+        // Iterate through the mask
+        for (let i = 0, idx = 0; i < format.length; i++) {
+            const char = format[i];
+            if (char === '#') {
+                result += digits[idx] || ''; // Replace # with current digit
+                idx++;
+            } else {
+                result += char; // Keep literal characters (-, space, DE, etc.)
+            }
+        }
+        return result;
     }
 
     // === NUMBER FORMAT ===
     const value = parseFloat(expression);
     if (!Number.isFinite(value)) return String(expression);
-
-    const decimalSep = sep('decimal');
     const [intPartRaw, fracPartRaw = ''] = value
         .toLocaleString(locale, { useGrouping: false })
         .replace('.', decimalSep)
@@ -162,18 +367,31 @@ export function format$(expression, format = '#,##', locale = 'de-DE') {
     const [fmtInt = '', fmtFrac = ''] = format.split(decimalSep);
 
     // Pad integer part
-    let intPart = intPartRaw.padStart(fmtInt.replace(/[^#]/g, '').length, '0');
-    let intFormatted = '';
-    let i = intPart.length - 1;
+    let intFormatted = '',
+        intPart = intPartRaw.padStart(fmtInt.replace(/[^#]/g, '').length, '0'),
+        i = intPart.length - 1,
+        digitCount = 0;
+    // iterating backwards over the formatted integer part of the expression
     for (let c = fmtInt.length - 1; c >= 0; c--) {
         const fmtChar = fmtInt[c];
-        const digit = i >= 0 ? intPart[i] : '0'; // nehme Ziffer oder '0'
-        intFormatted = (fmtChar === '#' ? digit : fmtChar) + intFormatted;
-        if (fmtChar === '#') i--;
+        if (fmtChar === '#') {
+            const digit = i >= 0 ? intPart[i] : '0';
+            intFormatted = digit + intFormatted;
+            i--;
+            digitCount++;
+            if (useGrouping && digitCount % 3 === 0 && i >= 0) intFormatted = groupSep + intFormatted;
+        } else {
+            // other chars in format string (i. e. currency signs)
+            intFormatted = fmtChar + intFormatted;
+        }
     }
-    // ➕ Übrig gebliebene Ziffern (wenn intPart länger ist als formatInt)
-    if (i >= 0) {
-        intFormatted = intPart.slice(0, i + 1) + intFormatted;
+
+    // Remaining digits (if intPart is longer than formatInt)
+    while (i >= 0) {
+        if (useGrouping && digitCount % 3 === 0) intFormatted = groupSep + intFormatted;
+        intFormatted = intPart[i] + intFormatted;
+        i--;
+        digitCount++;
     }
 
     // Format fraction part
@@ -181,7 +399,6 @@ export function format$(expression, format = '#,##', locale = 'de-DE') {
     for (let c = 0; c < fmtFrac.length; c++) {
         fracFormatted += (fmtFrac[c] === '#' ? fracPartRaw[c] || '0' : fmtFrac[c]);
     }
-
     return intFormatted + (fracFormatted ? decimalSep + fracFormatted : '');
 }
 
@@ -204,7 +421,8 @@ Math.roundDec = function(number, decimals = 0) {
  * Iterates through all elements containing the attribute 'w3-include-html'.
  * i.e.:
  *
- * header w3-include-html="templates/header.html" will load a given header
+ * @example
+ * <header w3-include-html="templates/header.html"/> // will load a given header
  */
 export async function includeHTML() {
     const W3_ATTR = 'w3-include-html';

@@ -2,19 +2,54 @@ import $ from '../utils.js';
 import Library from './Library.js';
 
 /**
- * LoadManager — Granular asset loading and progress tracking
- * ==========================================================
- * This class extends the Library to provide a professional loading system.
- * It uses the Streams API to track the download progress of binary assets.
- * * Features:
- * - Manifest Support: Integrates with AssetScanner's assets.json.
- * - Selective Loading: Toggle tracking for scripts, styles, text-files and markup.
- * - Hybrid Loading: Supports DOM-based scanning and manual task registration.
- * - Global Cache: Stores processed assets for easy retrieval.
- * - CSS Integration: Sets images as CSS variables for container backgrounds.
- * * CSS variables from this LoadManager start with: "--asset- ..."
- * * @version 1.2.0
+ * @file LoadManager.js
+ * @module LoadManager
  * @extends Library
+ * @version 1.2.0
+ * @author Jens-Olaf-Mueller
+ *
+ * LoadManager — Granular asset loading and progress tracking system.
+ * ==================================================================
+ *
+ * Provides a professional loading system utilizing the Streams API to track download progress of binary assets.
+ * - Key Features:
+ *   - Hybrid Scanning: Automatically detects DOM elements with `data-asset` or integrates via `assets.json` manifest.
+ *   - Progress Tracking: Calculates real-time percentages and byte-counts for deterministic and indeterministic loads.
+ *   - Selective Loading: Allows toggling of asset types (scripts, styles, markup, text) to be included in progress tracking.
+ *   - CSS Integration: Automatically generates `--asset-` CSS variables and applies background styles to containers.
+ *   - Visual Stability: Uses a configurable delay to prevent UI flickering on fast loads or cache hits.
+ *
+ * ---------------------------------------------------------------
+ * I. Public Methods
+ * ---------------------------------------------------------------
+ * - {@link initFromDOM}    - Scans the document for `data-asset` attributes and registers tasks.
+ * - {@link registerTask}   - Manually registers a resource for progress tracking with optional size weighting.
+ * - {@link getAsset}       - Retrieves a previously processed asset from the internal global cache.
+ * - {@link loadAsset}      - Fetches a single resource via the Streams API to track granular download progress.
+ * - {@link loadAll}        - Executes all registered tasks in parallel, optionally loading from a manifest file.
+ * - {@link processBlob}    - Converts raw blobs into usable media objects (Images, Audio) or parsed JSON.
+ *
+ * ---------------------------------------------------------------
+ * II. Private Methods
+ * ---------------------------------------------------------------
+ * - #applyAsset()          - Injects processed data into DOM elements or assigns them to CSS variables.
+ * - #updateProgress()      - The central progress hub that calculates percentages and raises tracking events.
+ * - #finishTask()          - Finalizes individual tasks and reconciles overall loading statistics.
+ *
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * @event loadstart {Object}        - Fires when the batch loading process begins after the visual delay.
+ * @event loadprogress {@link LoadManagerEvent} - Fires during the download of a resource with current percentages.
+ * @event taskcomplete {Object}     - Fires when an individual file has finished loading and processing.
+ * @event loadcomplete {Object}     - Fires when all registered tasks have been successfully finalized.
+ * @event loaderror {Object}        - Fires if a batch loading process or manifest fetch fails.
+ *
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * Variables are generated dynamically based on asset keys and prefixed with '--asset-'.
+ * - --asset-[key] - Holds the `url()` of the processed asset for use in background-image styles.
  */
 export class LoadManager extends Library {
     #delay = 200;
@@ -26,7 +61,6 @@ export class LoadManager extends Library {
     totalExpectedBytes = 0;
     totalLoadedBytes = 0;
     defaultWeight = 512000;
-
 
     /** @type {Map<string, object>} Task registry for progress tracking */
     tasks = new Map();
@@ -372,3 +406,13 @@ export class LoadManager extends Library {
         }
     }
 }
+
+/**
+ * @typedef {Object} LoadManagerEvent
+ * @property {string} key - The unique identifier of the asset.
+ * @property {number} percent - The current overall progress percentage (0-100).
+ * @property {number} loaded - Total bytes loaded across all tasks.
+ * @property {number} total - Total expected bytes across all tasks.
+ * @property {string|null} url - The URL of the currently updating resource.
+ * @property {Object} task - The internal task state object.
+ */

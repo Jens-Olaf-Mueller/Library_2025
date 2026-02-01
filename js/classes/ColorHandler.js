@@ -2,54 +2,54 @@ import Library from './Library.js';
 import { CSS_COLORS } from '../css_colors.js';
 
 /**
- * ColorHandler — Unified color parsing, conversion, and analysis
+ * @file ColorHandler.js
+ * @module ColorHandler
+ * @extends Library
+ * @version 1.0.0
+ * @author Jens-Olaf-Mueller
+ *
+ * ColorHandler — Unified color parsing, conversion, and analysis.
  * ===============================================================
  *
- * Provides a single interface for working with colors in multiple formats:
- * - CSS color names (via `CSS_COLORS`)
- * - HEX (#RGB, #RRGGBB, #RRGGBBAA)
- * - rgb()/rgba()
- * - hsl()/hsla()
- * - arrays ([r,g,b,a?]) and plain objects ({r,g,b,a?})
- *
- * The class internally validates and normalizes colors using a 1×1 canvas context.
- * It supports an optional strict validation mode (`strictMode`):
- * - strictMode=true  → invalid inputs return `undefined`
- * - strictMode=false → invalid inputs fall back to transparent/black defaults
- *
- * Notes:
- * - Normalization returns channel data (r,g,b,a), derived HEX, optional CSS name,
- *   YIQ brightness, and WCAG relative luminance (linearized sRGB).
- * - This class extends {@link Library} and uses {@link Library.toBoolean} for coercion.
+ * Provides a single interface for working with colors in multiple formats (HEX, RGB, HSL, CSS names).
+ * - Key Features:
+ * - Universal Parsing: Handles HEX, rgb/rgba, hsl/hsla, arrays, and plain objects.
+ * - Canvas Normalization: Internally validates and normalizes colors using a 1x1 canvas context.
+ * - Brightness & Contrast: Supports YIQ brightness and WCAG relative luminance calculations.
+ * - Strict Mode: Configurable validation behavior to return either undefined or fallback defaults.
  *
  * ---------------------------------------------------------------
- * I. Public API
+ * I. Public Methods
  * ---------------------------------------------------------------
- *
- * - {@link strictMode}           - get/set strict validation behavior
- *
- * - {@link toHex}                - converts any supported color input to HEX
- * - {@link toRGB}                - converts to rgb()/rgba()
- * - {@link toHSL}                - converts to hsl()/hsla()
- * - {@link toYIQ}                - returns YIQ brightness (0–255)
- *
- * - {@link getLuminance}         - returns WCAG relative luminance (0–1)
- * - {@link getBrightness}        - returns derived brightness (0–100)
- * - {@link getContrastRatio}     - returns contrast ratio (1–21) between two colors
- * - {@link getAutoTextColor}     - returns '#000' or '#fff' for readable text on a background
- *
- * - {@link invert}               - returns complementary color as HEX
- * - {@link isValid}              - validates whether an input can be parsed as a color
- * - {@link mix}                  - mixes two colors by ratio (0–1), returns HEX
- * - {@link randomColor}          - generates a random HEX color
+ * - {@link toHex}            - Converts any supported color input to a HEX string.
+ * - {@link toRGB}            - Converts any color to an rgb() or rgba() string.
+ * - {@link toHSL}            - Converts any color to an hsl() or hsla() string.
+ * - {@link toYIQ}            - Calculates the numeric YIQ brightness value (0–255).
+ * - {@link getLuminance}     - Returns the WCAG relative luminance (linearized sRGB).
+ * - {@link getBrightness}    - Returns a perceived brightness value (0–100).
+ * - {@link getAlpha}         - Extracts the alpha channel value (0–1) of a given color.
+ * - {@link getContrastRatio} - Calculates the contrast ratio (1–21) between two colors.
+ * - {@link getAutoTextColor} - Returns a readable text color ('#000' or '#fff') for a given background.
+ * - {@link invert}           - Returns the complementary color in HEX format.
+ * - {@link isValid}          - Validates whether an input can be parsed as a color.
+ * - {@link mix}              - Blends two colors based on a specific ratio.
+ * - {@link randomColor}      - Generates a random HEX color string.
  *
  * ---------------------------------------------------------------
- * II. Private Methods / Internals
+ * II. Private Methods
  * ---------------------------------------------------------------
- * - {@link #parseColor}          - parses/normalizes input to {r,g,b,a,hex,name,yiq,luminance}
- * - {@link #getRGBA_Array}       - resolves a fillStyle to [R,G,B,A] via canvas sampling
+ * - #parseColor()            - The core engine for normalizing color inputs into internal data objects.
+ * - #getRGBA_Array()         - Resolves a CSS fillStyle to a numeric [R,G,B,A] array via canvas sampling.
  *
- * @version 1.0.0
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * This component does not raise any custom events.
+ *
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * This component does not provide any CSS variables.
  */
 export class ColorHandler extends Library {
 	#canvas;
@@ -253,6 +253,16 @@ export class ColorHandler extends Library {
 		const c = this.#parseColor(color);
 		return c ? Math.pow(c.luminance, 0.68) * 100 : undefined;
 	}
+
+    /**
+     * Returns the alpha channel of a color (0 to 1).
+     * @param {String | Array | Object} color - Any valid color format
+     * @returns {Number | undefined} alpha value
+     */
+    getAlpha(color) {
+        const c = this.#parseColor(color);
+        return c ? c.a : undefined;
+    }
 
 	/**
 	 * Calculates the contrast ratio between two colors (1–21).

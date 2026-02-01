@@ -1,22 +1,3 @@
-/**
- * Calculator.js
- *
- * A self-contained, UI-integrated calculator widget with persistent settings
- * and clean lifecycle handling.
- * Refactored version with DOM caching, modular button handling, safe parsing,
- * dynamic font resizing (throttled observer) and full JSDoc comments.
- * Improvements:
- * - Strict expression validation (no code injection)
- * - Symmetric rounding with EPSILON
- * - Display formatting separated from numeric logic
- * - Proper lifecycle management (init, show, hide, destroy)
- * - Observer + event cleanup
- * - Buddy reuse without full DOM rebuild
- * - Clear separation of settings vs. runtime state
- *
- * Author: Olaf Müller
- */
-
 import $ from '../utils.js';
 import { Parser } from './Parser.js';
 import Library from './Library.js';
@@ -24,13 +5,82 @@ import Library from './Library.js';
 const NUM_REGEX = /[^-0-9,e+e-]|-$|\+$/g;
 
 /**
- * Calculator class with display, input handling and math evaluation.
+ * @file Calculator.js
+ * @module Calculator
+ * @extends Library
+ * @version 2.2.0
+ * @author Jens-Olaf-Mueller
+ *
+ * Calculator - A self-contained, UI-integrated calculator widget.
+ * ===============================================================
+ *
+ * Provides a fully functional math interface with persistent logic and a "Buddy System".
+ * - Key Features:
+ * - Buddy System: Seamlessly connects to HTML input elements for data exchange.
+ * - Auto-Scanning: Detects DOM elements with `data-calculator="true"` for automatic icon injection.
+ * - Math Logic: Sophisticated expression evaluation including unary functions, parentheses, and modulo.
+ * - Smart UI: Features a Throttled MutationObserver for dynamic font-size adjustment (overflow prevention).
+ * - Persistency: Maintains calculation states and supports repeated "equals" operations.
+ *
+ * ---------------------------------------------------------------
+ * I. Public Methods
+ * ---------------------------------------------------------------
+ * - {@link show}             - Displays the calculator and optionally assigns a buddy input.
+ * - {@link hide}             - Hides the calculator and dispatches the close event.
+ * - {@link reset}            - Resets calculation state, displays, and internal memory.
+ * - {@link deleteChar}       - Deletes the last character or multi-char operator from the input.
+ * - {@link updateDisplay}    - Updates the UI with expressions, numeric results, or error messages.
+ * - {@link executeMathFunction} - Executes unary operations (sqrt, power, factorial, etc.).
+ * - {@link compute}          - Evaluates the current math expression using the internal Parser.
+ * - {@link round}            - Performs symmetric rounding using EPSILON for high precision.
+ * - {@link format$}          - Localizes number formatting with digit grouping.
+ * - {@link isOperator}       - Validates if a string is a recognized math operator.
+ *
+ * ---------------------------------------------------------------
+ * II. Private Methods
+ * ---------------------------------------------------------------
+ * - #init()            - Singleton initialization of UI, DOM caching, and MutationObserver.
+ * - #autoScanBuddies()  - Scans the DOM for inputs requiring a calculator connection.
+ * - #injectBuddyIcon() - Injects the SVG trigger icon next to connected input fields.
+ * - #handleButtonClick() - Central event dispatcher for all UI button interactions.
+ * - #adjustDisplay()    - Dynamic font-size reduction logic to prevent display overflow.
+ *
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * @event calculatorclosed {@link CustomEvent} - Fires when the calculator is hidden.
+ *
+* ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * All variables are prefixed with '--calc-' and follow kebab-case naming.
+ * - --calc-grid-gap                - Spacing between calculator buttons.
+ * - --calc-button-width            - Standard width for calculator buttons.
+ * - --calc-button-height           - Standard height for calculator buttons.
+ * - --calc-button-border-radius    - Corner radius for standard buttons.
+ * - --calc-button-double-border-radius - Corner radius for double-sized buttons.
+ * - --calc-button-bg-color         - Background color of the buttons.
+ * - --calc-button-text-color       - Text color of the buttons.
+ * - --calc-button-special-color    - Color for special operator buttons.
+ * - --calc-button-memory-color     - Color for memory-related buttons (MC, MR, etc.).
+ * - --calc-display-bg-color        - Background color of the calculator display.
+ * - --calc-display-color           - Text color of the main display.
+ * - --calc-display-border-radius   - Corner radius of the display area.
+ * - --calc-dark-shadow             - Darker shade for the neumorphic depth effect.
+ * - --calc-light-shadow            - Lighter shade for the neumorphic depth effect.
+ * - --calc-bg1                     - Primary background color stop for the calculator body.
+ * - --calc-bg2                     - Secondary background color stop for the calculator body.
+ * - --calc-icon-size               - Size of the injected SVG trigger icon.
+ * - --calc-icon-color              - Color of the injected SVG trigger icon.
  */
 export class Calculator extends Library {
     #observer;
 
 	#buddy = null;
-    get buddy() { return this.#buddy; }
+    /**
+     * Gets or sets the connected input element (buddy).
+     * @type {HTMLElement|null}
+     */
     set buddy(element) {
         let resolved = null;
         if (typeof element === 'string') {
@@ -55,9 +105,13 @@ export class Calculator extends Library {
             this.DOM?.divCalculatorPod.setAttribute('data-calcbuddy', true);
         }
     }
+    get buddy() { return this.#buddy; }
 
-    // Property for Icon-Handling
     #displayBuddyIcon = false;
+    /**
+     * Toggles automatic buddy icon scanning and injection.
+     * @type {boolean}
+     */
     get displayBuddyIcon() { return this.#displayBuddyIcon; }
     set displayBuddyIcon(flag) {
         this.#displayBuddyIcon = this.toBoolean(flag);
@@ -65,6 +119,7 @@ export class Calculator extends Library {
     }
 
 	#displayWidth;
+    /** @type {number} The available width of the display input */
 	get displayWidth() { return this.#displayWidth; }
 
 	memory = 0;
@@ -77,12 +132,16 @@ export class Calculator extends Library {
 	buttonStyle = 0;
 	DEF_FONTSIZE = 36;
 
-    /** Returns the full visible expression (prev + curr) exactly as the user sees it. */
+    /** * Returns the full visible expression (prev + curr) exactly as the user sees it.
+     * @type {string}
+     */
     get fullExpression() {
         return `${this.prevOperand || ''}${this.currOperand || ''}`;
     }
 
-    /** True if the current visible expression contains any parentheses. */
+    /** * True if the current visible expression contains any parentheses.
+     * @type {boolean}
+     */
     get hasParens() { return /[()]/.test(this.fullExpression); }
 
     // remember last binary operation for repeated "=" presses
@@ -90,33 +149,47 @@ export class Calculator extends Library {
     lastOperand  = null;   // numeric right-hand operand used last time
     lastWasUnary = false;  // true if the last completed action was a unary function like x² etc.
 
+    /** @type {string} Previous operand display value */
 	get prevOperand() { return this.#getText('divPrevOperand'); }
 	set prevOperand(v = '') { this.#setText('divPrevOperand', v); }
 
+    /** @type {string} Current operand display value */
 	get currOperand() { return this.#getText('divInput'); }
 	set currOperand(v = '0') { this.#setText('divInput', v); }
 
+    /** @type {string} Memory indicator state */
 	get memDisplay() { return this.#getText('divMemory'); }
 	set memDisplay(v) { this.#setText('divMemory', v); }
 
+    /** @type {number} Numeric representation of current operand */
 	get currValue() { return Number(this.currOperand.replace(NUM_REGEX, '').replace(/,/g, '.')); }
+    /** @type {number} Numeric representation of previous operand */
 	get prevValue() { return Number(this.prevOperand.replace(NUM_REGEX, '').replace(/,/g, '.')); }
 
+    /** @type {boolean} True if an open bracket is present in current operand */
 	get termIsOpen() { return this.currOperand.includes(BRACKET_OPEN); }
+    /** @type {boolean} True if the currently pressed button is a digit or PI */
 	get isNumeric() {
         return typeof this.currentButton === 'string' && (!isNaN(this.currentButton) || this.currentButton === 'π');
     }
+    /** @type {boolean} True if the current button is a bracket */
 	get isBracket() { return '()'.includes(this.currentButton); }
+    /** @type {string} The last character entered into the display */
 	get lastInput() { return this.currOperand.slice(-1); }
 
 
+    /**
+     * @constructor
+     * @param {boolean} [autostart=false] - If true, show the calculator immediately.
+     * @param {HTMLElement|string|null} [buddy=null] - Initial input element to connect.
+     * @param {HTMLElement} [parent=document.body] - Container for the UI.
+     */
 	constructor(autostart = false, buddy = null, parent = document.body) {
 		super(parent);
         /** @type {Parser} — embedded math parser component */
 	    this.parser = new Parser({ precision: this.decimals });
         if (buddy !== null) this.buddy = buddy;
         this.#init();
-        // this.#autoScanBuddies();
 		if (autostart) this.show();
 	}
 
@@ -124,9 +197,10 @@ export class Calculator extends Library {
 	 * Initializes calculator UI, caches DOM, starts observer.
 	 * Called internally on creation or buddy assignment.
      * Initializes calculator UI exactly once.
+     * @private
 	 */
     #init() {
-        if (this.created) return; // Guard for singleton
+        if (this.created) return; // guard for singleton
 
         this.renderUI(document.body, true);
         this.DOM.divCalculatorPod.addEventListener('click', (e) => this.#handleButtonClick(e));
@@ -151,6 +225,7 @@ export class Calculator extends Library {
     /**
      * Scans the document for inputs with [data-calculator="true"]
      * and attaches the buddy icon and logic.
+     * @private
      */
     #autoScanBuddies() {
         const calcBuddies = $('input[data-calculator="true"]', true);
@@ -159,7 +234,8 @@ export class Calculator extends Library {
 
     /**
      * Injects the SVG icon as a trigger next to the buddy input.
-     * @param {HTMLElement} input
+     * @param {HTMLElement} input - The input field to attach the icon to.
+     * @private
      */
     #injectBuddyIcon(input) {
         // Check if icon already exists to avoid duplicates
@@ -181,8 +257,115 @@ export class Calculator extends Library {
     }
 
     /**
-     * Shows the calculator
-     * @param {HTMLElement|string|null} buddy optional connected HTML input element
+     * Handles keyboard input with advanced shortcuts for functions and memory.
+     * Maps physical keys and combinations to calculator buttons.
+     *
+     * Keyboard Shortcuts:
+     * -------------------
+     * Standard:
+     * - 0-9, +, -, *, /   → Standard Keys (Numpad or Top Row)
+     * - =                 → Enter
+     * - AC (Clear)        → Escape | Delete
+     * - ⌫ (Backspace)     → Backspace
+     * - ± (Sign Toggle)   → Space
+     * - , | .             → Decimal Separator
+     *
+     * Advanced Math:
+     * - ↵ (Apply to Buddy)→ SHIFT + Enter
+     * - n!                → SHIFT + 1
+     * - %                 → SHIFT + 5
+     * - ( )               → ( ) or SHIFT + 8/9
+     * - x²                → AltGr + 2
+     * - √                 → AltGr + Q
+     *
+     * Memory (CTRL + SHIFT):
+     * - MC                → C
+     * - MR                → R
+     * - MS                → S
+     * - M+                → +
+     * - M-                → -
+     *
+     * @param {KeyboardEvent} e event
+     */
+    #handleKeyboard(e) {
+        if (!this.visible) return;
+
+        let targetKey = null;
+        const code = e.code;
+        const key = e.key;
+        const isShift = e.shiftKey;
+        const isCtrl = e.ctrlKey || e.metaKey; // Mac-Support
+        // AltGr ist technisch oft Ctrl+Alt, oder via getModifierState abfragbar
+        const isAltGr = e.getModifierState('AltGraph') || (isCtrl && e.altKey);
+
+        // 1. === MEMORY KEYS (CTRL + SHIFT + Letter) ===
+        if (isCtrl && isShift) {
+            if (code === 'KeyR') targetKey = 'MR';
+            else if (code === 'KeyS') targetKey = 'MS';
+            else if (code === 'KeyC') targetKey = 'MC';
+            else if (key === '+' || code === 'Equal' || code === 'BracketRight') targetKey = 'M+'; // '+' liegt oft verschieden
+            else if (key === '-' || code === 'Slash' || code === 'Minus') targetKey = 'M-';
+        }
+
+        // 2. === SPECIAL FUNCTIONS (AltGr or Specific Shift-Combos) ===
+        else if (isAltGr) {
+            if (code === 'Digit2' || key === '²') targetKey = 'x²'; // AltGr+2
+            if (code === 'KeyQ' || key === '@')   targetKey = '√';  // AltGr+Q
+        }
+
+        // 3. === SHIFT FUNCTION SHORTCUTS ===
+        else if (isShift) {
+            // Priority Mappings für User-Wünsche
+            if (code === 'Enter')  targetKey = '↵';   // Shift+Enter -> Buddy
+            else if (code === 'Digit1') targetKey = 'n!';  // Shift+1 -> Fakultät
+            else if (code === 'Digit5') targetKey = '%';   // Shift+5 -> Prozent
+
+            // Standard Symbole (Klammern etc.) über den produzierten Key abfangen
+            else if (key === '(') targetKey = '(';
+            else if (key === ')') targetKey = ')';
+            else if (key === '*') targetKey = '×';
+            else if (key === '/') targetKey = '÷';
+            else if (key === ':') targetKey = '÷'; // Manche Tastaturen
+        }
+
+        // 4. === STANDARD KEYS (No modifiers or simple typing) ===
+        else {
+            if (code === 'Space') targetKey = '±'; // Leertaste toggelt Vorzeichen
+            else if (key === 'Enter') targetKey = '=';
+            else if (key === 'Escape') targetKey = 'AC';
+            else if (key === 'Backspace') targetKey = '⌫';
+            else if (key === 'Delete') targetKey = 'AC';
+
+            // Standard Operatoren & Zahlen
+            else if (key === '+') targetKey = '+';
+            else if (key === '-') targetKey = '-';
+            else if (key === '*') targetKey = '×';
+            else if (key === '/') targetKey = '÷';
+            else if (key === ',' || key === '.') targetKey = ',';
+            else if (/\d/.test(key)) targetKey = key; // Zahlen 0-9
+        }
+
+        // 5. === EXECUTE ===
+        if (targetKey) {
+            // Button im DOM suchen (via TextContent)
+            // Wir nutzen Array.from, um .find() nutzen zu können
+            const buttons = Array.from(this.DOM.divCalculatorPod.querySelectorAll('button'));
+            const btn = buttons.find(b => b.textContent === targetKey);
+
+            if (btn) {
+                e.preventDefault(); // Wichtig: Verhindert z.B. Scrollen bei Space
+                btn.click();
+
+                // Visuelles Feedback
+                btn.classList.add('active');
+                setTimeout(() => btn.classList.remove('active'), 100);
+            }
+        }
+    }
+
+    /**
+     * Shows the calculator.
+     * @param {HTMLElement|string|null} [buddy=null] - Optional connected HTML input element.
      * - null           → no buddy assigned
      * - HTMLElement    → input element to display the result
      * - string         → represents the ID of the input element
@@ -197,19 +380,26 @@ export class Calculator extends Library {
             this.currOperand = (value instanceof Error) ? 0 : value.toString().replace('.', ',');;
         }
         this.#adjustDisplay();
-		$('.all-clear').focus();
-        console.log(this)
+
+        // Keyboard Listener
+        if (!this._onKeyDown) this._onKeyDown = this.#handleKeyboard.bind(this);
+        document.addEventListener('keydown', this._onKeyDown);
+        $('.all-clear').focus();
+        this.log(this);
 	}
 
 	/**
-     * Hides calculator and disconnects observer
+     * Hides calculator and dispatches closed event.
      */
 	hide() {
         this.visible = false;
+        if (this._onKeyDown) document.removeEventListener('keydown', this._onKeyDown);
 		document.dispatchEvent(new CustomEvent('calculatorclosed'));
 	}
 
-	/** Resets current calculation and display. */
+	/**
+     * Resets current calculation, operands, and memory repetition flags.
+     */
 	reset() {
 		this.currOperand = '0';
 		this.prevOperand = '';
@@ -221,10 +411,9 @@ export class Calculator extends Library {
 		// clear the repeat "=" memory
         this.lastOperator = null;
         this.lastOperand = null;
-        this.lastWasUnary = false; // clear unary flag!
+        this.lastWasUnary = false;
 	}
 
-	/** Deletes last character or operator safely. */
 	/**
 	 * Deletes the last character (or operator) from the current operand.
 	 * Automatically handles multi-character operators like ' mod '.
@@ -245,12 +434,15 @@ export class Calculator extends Library {
 
 	// === GETTERS / SETTERS (Proxy via helper methods) ===
 
+    /** @private */
 	#getText(ref) { return this.DOM[ref].textContent; }
+    /** @private */
 	#setText(ref, val) { this.DOM[ref].textContent = val; }
 
 	/**
-	 * Main click handler dispatching to smaller methods.
-	 * @param {string} btn - Pressed button label
+	 * Main click handler dispatching to specialized button handlers.
+	 * @param {Event} e - Pointer event from the button container.
+     * @private
 	 */
 	#handleButtonClick(e) {
         const btn = e.target.closest('button')?.textContent;
@@ -266,7 +458,11 @@ export class Calculator extends Library {
 		if (this.#handleFunction(btn)) return;
 	}
 
-	/** Handles AC, Delete, Enter buttons */
+	/** * Handles meta buttons like AC, Delete, and Equals.
+     * @param {string} btn - Button label.
+     * @returns {boolean} True if handled.
+     * @private
+     */
 	#handleMeta(btn) {
 		if (btn === 'AC') { this.reset(); return true; }
 		if (btn === '⌫') { this.deleteChar(); return true; }
@@ -283,7 +479,11 @@ export class Calculator extends Library {
 		return false;
 	}
 
-	/** Handles memory operations */
+	/** * Handles memory operations (MC, MR, MS, M+, M-).
+     * @param {string} btn - Button label.
+     * @returns {boolean} True if handled.
+     * @private
+     */
 	#handleMemory(btn) {
 		if (!btn.startsWith('M')) return false;
 		this.currentButton = btn;
@@ -301,7 +501,11 @@ export class Calculator extends Library {
 		return true;
 	}
 
-	/** Handles numeric inputs */
+	/** * Handles numeric digit inputs.
+     * @param {string} btn - Digit or PI.
+     * @returns {boolean} True if handled.
+     * @private
+     */
 	#handleNumeric(btn) {
 		if (!this.isNumeric) return false;
 		if (this.isOperator() || this.calcDone) {
@@ -315,7 +519,11 @@ export class Calculator extends Library {
 		return true;
 	}
 
-	/** Handles operator buttons */
+	/** * Handles operator selection and chaining.
+     * @param {string} btn - Operator label.
+     * @returns {boolean} True if handled.
+     * @private
+     */
 	#handleOperator(btn) {
 		if (!this.isOperator(btn)) return false;
 		if (this.isOperator()) {
@@ -332,27 +540,23 @@ export class Calculator extends Library {
 	}
 
     /**
-     * Handles decimal separator input (e.g., ",").
-     * Rules:
-     *  - If pressed first (or right after an operator or "("), prepend "0".
-     *  - Only one separator per current operand (or per innermost bracket segment).
-     *  - If an operator is pending and prevOperand is empty, move current to divPrevOperand and start "0,".
+     * Handles decimal separator input with context-aware leading zero injection.
+     * @param {string} btn - The separator character.
+     * @returns {boolean} True if handled.
      * @private
-     * @param {string} btn - The pressed button (expected to be SEPARATOR).
-     * @returns {boolean} - True if handled here.
      */
     #handleSeparator(btn) {
         if (btn !== SEPARATOR) return false;
 
         // Case A: inside parentheses → allow one separator in the innermost term
         if (this.termIsOpen) {
-            // Prevent double separators like "0,,"
+            // prevent double separators like "0,,"
             if (this.lastInput === SEPARATOR) return true;
 
-            // If the last char is "(" or an operator, prepend leading zero
+            // if the last char is "(" or an operator, prepend leading zero
             if (this.lastInput === BRACKET_OPEN || this.isOperator()) this.currOperand += '0';
 
-            // Allow only one separator within the innermost "( ... )"
+            // allow only one separator within the innermost "( ... )"
             const expressionIfAdded = this.currOperand + SEPARATOR;
             const lastOpenIdx = this.currOperand.lastIndexOf(BRACKET_OPEN);
             const sepIsValid = expressionIfAdded.lastIndexOf(SEPARATOR) > lastOpenIdx;
@@ -379,12 +583,10 @@ export class Calculator extends Library {
     }
 
     /**
-     * Handles open/close bracket button presses.
-     * UX: Do not evaluate on closing bracket. Let the parser handle the full
-     * expression on "=" / "↵".
+     * Handles bracket inputs.
+     * @param {string} btn - "(" or ")".
+     * @returns {boolean} True if handled.
      * @private
-     * @param {string} btn - "(" or ")"
-     * @returns {boolean} - True if the button was handled here.
      */
     #handleBrackets(btn) {
         if (!this.isBracket) return false;
@@ -392,7 +594,11 @@ export class Calculator extends Library {
         return true;
     }
 
-	/** Handles function keys like √, %, n!, etc. */
+	/** * Handles specialized functions like √, %, n!, etc.
+     * @param {string} btn - Function label.
+     * @returns {boolean} True if handled.
+     * @private
+     */
 	#handleFunction(btn) {
 		if (!FUNCTIONS.includes(btn)) return false;
 		this.updateDisplay(this.executeMathFunction(btn));
@@ -402,7 +608,7 @@ export class Calculator extends Library {
 	/**
 	 * Updates the calculator display with a given expression or result.
 	 * Handles formatting, overflow, and error states automatically.
-	 * @param {string|Error|number} expression
+	 * @param {string|Error|number} expression - The expression or result to display.
 	 */
 	updateDisplay(expression) {
 		if (expression === undefined) return;
@@ -425,9 +631,9 @@ export class Calculator extends Library {
 	}
 
 	/**
-	 * Executes mathematical single-value functions.
-	 * @param {string} fnc
-	 * @returns {string|Error|void}
+	 * Executes mathematical single-value functions (Unary operations).
+	 * @param {string} fnc - Function name.
+	 * @returns {string|Error|void} Result string or Error.
 	 */
 	executeMathFunction(fnc) {
 		let result = null;
@@ -478,6 +684,11 @@ export class Calculator extends Library {
         this.lastWasUnary = (result !== null);
 	}
 
+    /**
+     * Calculates the factorial of a given number.
+     * @param {number} number
+     * @returns {number}
+     */
 	factorial(number) {
 		if (number > 170) return Infinity;
 		if (number === 0 || number === 1) return 1;
@@ -487,19 +698,14 @@ export class Calculator extends Library {
 	}
 
     /**
-     * Computes the current expression.
-     * Order:
-     *  R) Repeat "=": if a result is shown and we have lastOperator/lastOperand → repeat a op b
-     *  A) Parentheses present → evaluate FULL visible expression via Parser
-     *  B) Shorthand "a op =" → treat as "a op a"
-     *  C) Classic binary evaluation (prevValue op currValue)
+     * Computes the current expression using the Parser or internal evaluation.
+     * Handles complex parentheses, shorthand logic, and repeated equals presses.
      * @returns {number|void}
      */
     compute() {
         const expr = this.fullExpression;
-
         // R) Repeat "=" case: user keeps pressing "=" after a completed calc
-        //    We expect: no pending operator, calcDone = true, and we remember lastOperator/lastOperand
+        // We expect: no pending operator, calcDone = true, and we remember lastOperator/lastOperand
         if (!this.operationPending && this.calcDone && this.lastOperator !== null && this.lastOperand !== null) {
             const a  = this.currValue;          // current displayed result
             const op = this.lastOperator;       // last used operator (string as shown, e.g. "×", " mod ")
@@ -571,7 +777,7 @@ export class Calculator extends Library {
             this.lastWasUnary = false;   // binary calc succeeded → not a unary state anymore
             this.operationPending = false;
 
-            // NEW: remember for repeated "="
+            // remember for repeated "="
             this.lastOperator = op;
             this.lastOperand  = a;
             return result;
@@ -601,12 +807,18 @@ export class Calculator extends Library {
         this.lastWasUnary = false;   // binary calc succeeded → not a unary state anymore
         this.operationPending = false;
 
-        // NEW: remember for repeated "=" (a op b .. then .. res op b ..)
+        // remember for repeated "=" (a op b .. then .. res op b ..)
         this.lastOperator = this.operationPending || operation;  // keep original op token (e.g. "×" or " mod ")
         this.lastOperand  = right;
         return result;
     }
 
+	/**
+	 * Performs symmetric rounding on a number to a specified number of decimal places.
+	 * @param {number} num - The number to round.
+	 * @param {number} [decimalPlaces=this.decimals] - Precision.
+	 * @returns {number} The rounded value.
+	 */
 	round(num, decimalPlaces = this.decimals) {
 		if (Number.isInteger(num)) return num;
 		const p = Math.pow(10, decimalPlaces);
@@ -614,6 +826,11 @@ export class Calculator extends Library {
 		return Math.round(n) / p;
 	}
 
+	/**
+	 * Formats a numeric expression to a localized string with digit grouping.
+	 * @param {string|number} expression - The value to format.
+	 * @returns {string} The formatted localized string.
+	 */
 	format$(expression) {
 		if (this.groupDigits) {
             // skip formatting if expression contains anything non-numeric, commas or brackets/operators
@@ -630,8 +847,56 @@ export class Calculator extends Library {
 		return expression.toString().replace('.', ',');
 	}
 
+    /**
+     * TODO
+     * REVIEW eventually implement new format$()-Method (inherit from Library)
+     *   - Problem currently: Math expressions like 12e-125 crash the MutationsObserver !
+     *
+     * Formats a numeric expression to a localized string with digit grouping.
+     * Uses the Library's universal format$ for integer grouping logic.
+     * @param {string|number} expression - The value to format.
+     * @returns {string} The formatted localized string.
+     */
+    // format$(expression) {
+    //     // 1. Guard
+    //     if (typeof expression === 'string' && /[^\d,.\-]/.test(expression)) return expression;
+    //     if (this.termIsOpen) return expression;
+    //     if (expression === '' || expression == null) return '0';
+
+    //     // 2. Split am Dezimal-Komma (Eingabe ist z.B. "1.000,9")
+    //     const str = expression.toString();
+    //     const parts = str.split(',');
+
+    //     // 3. SANITIZE: Alle Punkte aus dem Ganzzahl-Teil entfernen!
+    //     // Aus "1.000" wird "1000". Das ist entscheidend!
+    //     const intRaw = parts[0].replace(/\./g, '');
+
+    //     // 4. Formatierung (Nur Ganzzahl)
+    //     // Wir nutzen '#,' um den "Number Mode" zu erzwingen (1 Separator).
+    //     // Das sorgt dafür, dass isMask = false ist.
+    //     const intFmt = super.format$(intRaw, '#,##', {
+    //         useGrouping: this.groupDigits,
+    //         locale: 'de-DE'
+    //     });
+
+    //     // 5. Merge mit Original-Nachkommastellen
+    //     // Das Komma fügen wir manuell wieder an, falls es im Original da war
+    //     if (parts.length > 1) return intFmt + ',' + parts[1];
+
+    //     return intFmt;
+    // }
+
+	/**
+	 * Checks if a character is a recognized math operator.
+	 * @param {string} [expression=this.lastInput] - Character to check.
+	 * @returns {boolean}
+	 */
 	isOperator(expression = this.lastInput) { return OPERATORS.includes(expression); }
 
+	/**
+	 * Adjusts the font size of the display input to ensure text fits the container width.
+     * @private
+	 */
 	#adjustDisplay() {
 		let fntSize = this.DEF_FONTSIZE;
 		const output = this.DOM.divInput;
@@ -645,6 +910,7 @@ export class Calculator extends Library {
 }
 
 // === ASSETS + CONSTANTS ===
+/** @type {Object} Static assets and configuration constants for the calculator */
 export const ASSETS = {
 	errors: [
 		'Wrong parameter type', 'Overflow', 'Negative root', 'Division by zero',

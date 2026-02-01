@@ -1,62 +1,69 @@
-/**
- * @file Timer Web Component
- * @element timer-box
- * @description
- * A compact Web Component that combines a running clock (timer) with an
- * independent countdown mechanism. Both processes can run simultaneously.
- * The visual display shows either the clock or the countdown depending on
- * the {@link Timer#mode} property.
- *
- * API highlights:
- * - Start/stop/reset a **timer** (clock-like ticking).
- * - Start/stop a **countdown** in seconds or hh:mm[:ss] format.
- * - Optional alert time that fires an {@link EVT_EXPIRED} event.
- * - Rendering is batched via requestAnimationFrame for smooth updates.
- * - CustomEvents are dispatched with `composed:true` to cross the shadow boundary.
- *
- * @author Olaf
- * @version 2.0
- */
-
 import Library from '../classes/Library.js';
 
 /**
- * Timer tick event name.
- * @type {string}
+ * @file Timer.js
+ * @module Timer
+ * @version 2.0.0
+ * @author Jens-Olaf-Mueller
+ *
+ * Timer — Autonomous WebComponent for time keeping and count downs.
+ * ==============================================================================
+ *
+ * A compact, Shadow-DOM encapsulated Web Component (`<timer-box>`) that combines a
+ * running clock with an independent countdown mechanism.
+ * - Key Features:
+ *   - Dual Mode: Operates as a standard clock ('time') or countdown timer ('countdown'), or switches automatically ('auto').
+ *   - Batched Rendering: Uses `requestAnimationFrame` to decouple logic ticks from DOM updates for performance.
+ *   - Encapsulation: Fully isolated style and markup via Shadow DOM, customizable via CSS variables.
+ *   - Event-Driven: Dispatches composed CustomEvents (`timer`, `countdown`, `timeout`) that bubble through the shadow boundary.
+ *
+ * ---------------------------------------------------------------
+ * I. Public API
+ * ---------------------------------------------------------------
+ * - {@link start}        - Starts the clock ticker.
+ * - {@link stop}         - Stops the clock ticker.
+ * - {@link reset}        - Resets the clock to the current system time.
+ * - {@link countDown}    - Starts or stops a precise countdown based on a target duration.
+ * - {@link setTime}      - Manually sets the internal clock time.
+ * - {@link setAlertTime} - Sets a specific time at which the `timerexpired` event will fire.
+ * - Properties: `mode`, `format`, `showHours`, `showMinutes`, `timeRemaining`.
+ *
+ * ---------------------------------------------------------------
+ * II. Internal Logic
+ * ---------------------------------------------------------------
+ * - #createTemplate()    - Initializes the Shadow DOM structure and internal CSS.
+ * - #render()            - Updates the display text; synchronized via `requestAnimationFrame`.
+ * - #raiseEvent()        - Helper to dispatch CustomEvents with appropriate detail data.
+ *
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * @event timer {Object}        - Fires on every second tick of the clock.
+ * @event countdown {Object}    - Fires on every tick of the countdown with remaining time.
+ * @event timeout {Object}      - Fires when the countdown reaches zero.
+ * @event timerexpired {Object} - Fires when the clock reaches the configured alert time.
+ *
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * - --timer-border   - Border style of the component host.
+ * - --timer-bg       - Background color of the component.
+ * - --timer-color    - Text color.
+ * - --timer-font     - Font family used for the display.
+ *
+ * ---------------------------------------------------------------
+ * V. ToDo / Technical Debt
+ * ---------------------------------------------------------------
+ * 1. Architecture Mismatch: The class imports `Library.js` but extends `HTMLElement`.
+ * Refactor to either use a Mixin pattern or remove the Library dependency to make it a standalone Web Component.
+ * 2. Clock Drift: The clock uses a simple `setInterval` counter (`#sec++`), which is prone to drift over time.
+ * Unify logic to use `Date.now()` delta calculation similar to the countdown implementation.
+ * 3. Alert Reliability: The current alert check uses strict equality (`===`) on seconds.
+ * If the main thread lags, the exact second might be missed. Switch to timestamp comparison (`>=`).
+ * 4. Reflection Logic: The attribute/property synchronization relies on manual guards (`#updatingFromCode`).
+ * Refactor to standard Web Component patterns to avoid potential feedback loops.
  */
-const EVT_TIMER = 'timer';
-
-/**
- * Countdown tick event name.
- * @type {string}
- */
-const EVT_COUNTDOWN = 'countdown';
-
-/**
- * Countdown finished event name.
- * @type {string}
- */
-const EVT_TIMEOUT = 'timeout';
-
-/**
- * Alert-time reached event name (for the clock).
- * @type {string}
- */
-const EVT_EXPIRED = 'timerexpired';
-
-/**
- * @typedef {Object} TimerEventDetail
- * @property {string} time					- Current time formatted according to {@link Timer#format}.
- * @property {number} elapsed				- Milliseconds since the timer (clock) was started.
- * @property {string} countdown				- Remaining countdown time formatted `hh:mm:ss`.
- * @property {number} [remaining]			- Remaining seconds (only on {@link EVT_COUNTDOWN}).
- * @property {string} [alertAt]			    - Formatted alert time when {@link EVT_EXPIRED} fires.
- */
-
 class Timer extends HTMLElement {
-	// ─────────────────────────────────────────────────────────────────────────────
-	// Private fields
-	// ─────────────────────────────────────────────────────────────────────────────
 	#timerID = null;
 	#countDownID = null;
 	#countDownStart = 0;
@@ -98,10 +105,6 @@ class Timer extends HTMLElement {
 	 */
 	DOM = {};
 
-	// ─────────────────────────────────────────────────────────────────────────────
-	// Observed attributes
-	// ─────────────────────────────────────────────────────────────────────────────
-
 	/**
 	 * Attributes that the component observes.
 	 * @returns {string[]}
@@ -110,96 +113,7 @@ class Timer extends HTMLElement {
 		return ['hidden', 'time', 'alert', 'countdown', 'hours', 'minutes', 'format', 'mode'];
 	}
 
-	// ─────────────────────────────────────────────────────────────────────────────
-	// Constructor & lifecycle
-	// ─────────────────────────────────────────────────────────────────────────────
-
-	/**
-	 * Create a Timer element.
-	 * @param {string|number|Array<number|string>} [time]	- Optional initial time (clock) as "hh:mm[:ss]", seconds number, or [h,m(,s)].
-	 * @param {boolean} [run=false]							- If true (or time is omitted) the timer autostarts.
-	 */
-	constructor(time, run = false) {
-		super();
-		this.attachShadow({ mode: 'open', delegatesFocus: true });
-		this.#createTemplate();
-		this.setTime(time);
-		this.#autostart = (run === true || time === undefined);
-	}
-
-	/**
-	 * Called when the element is connected to the document.
-	 * Initializes DOM refs, applies initial attributes and renders once.
-	 */
-	connectedCallback() {
-		this.#cacheDOM();
-		this.#applyInitialAttributes();
-		this.#requestRender();
-		if (this.#autostart) this.start();
-	}
-
-	/**
-	 * Called whenever an observed attribute changes.
-	 *
-	 * DEUTSCHER HINWEIS (nur vorübergehend für dein Verständnis):
-	 * ----------------------------------------------------------------
-	 * Wir trennen DOM → State (attributeChangedCallback) strikt von
-	 * JS → State (Property-Setter). attributeChangedCallback schreibt
-	 * nur in interne Felder / ruft Methoden, die NICHT wiederum das
-	 * gleiche Attribut setzen. Falls Settern eine Attribut-Reflexion
-	 * durchführen, wird dies mit einem Guard (#updatingFromCode)
-	 * geschützt, damit keine Endlosschleifen entstehen.
-	 * ----------------------------------------------------------------
-	 *
-	 * @param {string} name
-	 * @param {string|null} oldVal
-	 * @param {string|null} newVal
-	 */
-	attributeChangedCallback(name, oldVal, newVal) {
-		if (oldVal === newVal || this.#updatingFromCode) return;
-
-		switch (name) {
-			case 'hidden':
-				// Reflect DOM attribute to property without re-writing attribute
-				// (host CSS already reacts to :host([hidden])).
-				// We avoid property->attribute reflection here on purpose.
-				break;
-
-			case 'hours':
-				this.showHours = (newVal === '' || this.toBoolean(newVal));
-				break;
-
-			case 'minutes':
-				this.showMinutes = (newVal === '' || this.toBoolean(newVal));
-				break;
-
-			case 'time':
-				this.setTime(newVal);
-				break;
-
-			case 'alert':
-				this.setAlertTime(newVal);
-				break;
-
-			case 'countdown':
-				this.countDown(newVal);
-				break;
-
-			case 'format':
-				this.format = newVal;
-				break;
-
-			case 'mode':
-				this.mode = newVal;
-				break;
-		}
-	}
-
-	// ─────────────────────────────────────────────────────────────────────────────
-	// Public properties
-	// ─────────────────────────────────────────────────────────────────────────────
-
-	/**
+    	/**
 	 * Returns the timer's internal interval id (or null).
 	 * @type {number|null}
 	 * @readonly
@@ -307,9 +221,86 @@ class Timer extends HTMLElement {
 		this.#updatingFromCode = false;
 	}
 
-	// ─────────────────────────────────────────────────────────────────────────────
-	// Timer (clock) control
-	// ─────────────────────────────────────────────────────────────────────────────
+	/**
+	 * Create a Timer element.
+	 * @param {string|number|Array<number|string>} [time]	- Optional initial time (clock) as "hh:mm[:ss]", seconds number, or [h,m(,s)].
+	 * @param {boolean} [run=false]							- If true (or time is omitted) the timer autostarts.
+	 */
+	constructor(time, run = false) {
+		super();
+		this.attachShadow({ mode: 'open', delegatesFocus: true });
+		this.#createTemplate();
+		this.setTime(time);
+		this.#autostart = (run === true || time === undefined);
+	}
+
+	/**
+	 * Called when the element is connected to the document.
+	 * Initializes DOM refs, applies initial attributes and renders once.
+	 */
+	connectedCallback() {
+		this.#cacheDOM();
+		this.#applyInitialAttributes();
+		this.#requestRender();
+		if (this.#autostart) this.start();
+	}
+
+	/**
+	 * Called whenever an observed attribute changes.
+	 *
+	 * DEUTSCHER HINWEIS:
+	 * ----------------------------------------------------------------
+	 * Wir trennen DOM → State (attributeChangedCallback) strikt von
+	 * JS → State (Property-Setter). attributeChangedCallback schreibt
+	 * nur in interne Felder / ruft Methoden, die NICHT wiederum das
+	 * gleiche Attribut setzen. Falls Settern eine Attribut-Reflexion
+	 * durchführen, wird dies mit einem Guard (#updatingFromCode)
+	 * geschützt, damit keine Endlosschleifen entstehen.
+	 * ----------------------------------------------------------------
+	 *
+	 * @param {string} name
+	 * @param {string|null} oldVal
+	 * @param {string|null} newVal
+	 */
+	attributeChangedCallback(name, oldVal, newVal) {
+		if (oldVal === newVal || this.#updatingFromCode) return;
+
+		switch (name) {
+			case 'hidden':
+				// Reflect DOM attribute to property without re-writing attribute
+				// (host CSS already reacts to :host([hidden])).
+				// We avoid property->attribute reflection here on purpose.
+				break;
+
+			case 'hours':
+				this.showHours = (newVal === '' || this.toBoolean(newVal));
+				break;
+
+			case 'minutes':
+				this.showMinutes = (newVal === '' || this.toBoolean(newVal));
+				break;
+
+			case 'time':
+				this.setTime(newVal);
+				break;
+
+			case 'alert':
+				this.setAlertTime(newVal);
+				break;
+
+			case 'countdown':
+				this.countDown(newVal);
+				break;
+
+			case 'format':
+				this.format = newVal;
+				break;
+
+			case 'mode':
+				this.mode = newVal;
+				break;
+		}
+	}
 
 	/**
 	 * Start the clock-timer (or resume it). If already running, it's restarted cleanly.
@@ -374,10 +365,6 @@ class Timer extends HTMLElement {
 	 */
 	resume() { this.start(); }
 
-	// ─────────────────────────────────────────────────────────────────────────────
-	// Countdown control
-	// ─────────────────────────────────────────────────────────────────────────────
-
 	/**
 	 * Start or stop the countdown.
 	 * - Passing "stop", `false` or `0` stops the countdown.
@@ -436,10 +423,6 @@ class Timer extends HTMLElement {
 		this.#displaySource = null;
 		this.#requestRender();
 	}
-
-	// ─────────────────────────────────────────────────────────────────────────────
-	// Time utilities (public + private)
-	// ─────────────────────────────────────────────────────────────────────────────
 
 	/**
 	 * Set the clock time. If omitted, current system time is used.
@@ -631,10 +614,6 @@ class Timer extends HTMLElement {
 		return undefined;
 	}
 
-	// ─────────────────────────────────────────────────────────────────────────────
-	// Event dispatch & rendering
-	// ─────────────────────────────────────────────────────────────────────────────
-
 	/**
 	 * Dispatch a CustomEvent that crosses the shadow boundary.
 	 * @private
@@ -698,10 +677,6 @@ class Timer extends HTMLElement {
 
 		this.DOM.divTimer.textContent = displayValue ?? '';
 	}
-
-	// ─────────────────────────────────────────────────────────────────────────────
-	// Internal helpers (DOM/template)
-	// ─────────────────────────────────────────────────────────────────────────────
 
 	/**
 	 * Cache frequently used shadow DOM elements.
@@ -771,3 +746,27 @@ class Timer extends HTMLElement {
 }
 
 customElements.define('timer-box', Timer);
+
+/**
+ * Timer tick event name.
+ * @type {string}
+ */
+const EVT_TIMER = 'timer';
+
+/**
+ * Countdown tick event name.
+ * @type {string}
+ */
+const EVT_COUNTDOWN = 'countdown';
+
+/**
+ * Countdown finished event name.
+ * @type {string}
+ */
+const EVT_TIMEOUT = 'timeout';
+
+/**
+ * Alert-time reached event name (for the clock).
+ * @type {string}
+ */
+const EVT_EXPIRED = 'timerexpired';

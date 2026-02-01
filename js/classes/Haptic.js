@@ -1,29 +1,48 @@
 import Library from './Library.js';
 
 /**
- * Haptic — Feedback utility for mobile devices.
- * ===============================================================
- * Provides tactile feedback for UI interactions.
- * - Android: Uses the Web Vibration API with specific patterns.
- * - iOS: Uses the "Switch-Hack" (toggling a hidden checkbox).
- * - Desktop: Provides console logs for development.
+ * @author Jens-Olaf-Mueller
+ * @file Haptic.js
+ * @module Haptic
+ * @extends Library
+ * @version 1.0.0
+ *
+ * Haptic — Multi-platform tactile feedback utility for mobile and web.
+ * ====================================================================
+ *
+ * Provides a unified interface for haptic interactions across different hardware engines.
+ * - Key Features:
+ * - Cross-Platform: Supports Android (Vibration API) and iOS (Checkbox-Switch Hack).
+ * - Intelligent Throttling: Prevents hardware overwhelm by enforcing a minimum interval delay between pulses.
+ * - Predefined Effects: Includes specific vibration patterns for 'tick', 'error', and 'whoosh'.
+ * - Development Support: Provides comprehensive console logging for desktop environments.
  *
  * @see {@link https://github.com/itsMaz1n/tactus}
+ * @see {@link https://github.com/tijnjh/ios-haptics/tree/main}
  *
  * ---------------------------------------------------------------
  * I. Public Methods
  * ---------------------------------------------------------------
- * - {@link activate}   - Arms the system (required after user gesture)
- * - {@link execute}    - Triggers a specific haptic effect ('tick', 'error', 'whoosh')
- * - {@link stop}       - Immediately cancels ongoing vibrations (Android)
- * - {@link terminate}  - Removes a possible injected iOS-Switch element
+ * - {@link activate}   - Arms the haptic system; must be called within a user-initiated event.
+ * - {@link execute}    - Triggers a specific predefined haptic feedback effect.
+ * - {@link stop}       - Immediately cancels ongoing vibrations (Android only) and cleans up resources.
+ * - {@link terminate}  - Removes the hidden DOM elements used for the iOS haptic workaround.
  *
  * ---------------------------------------------------------------
  * II. Private Methods
  * ---------------------------------------------------------------
- * - #pulse:           - Central dispatcher for hardware interaction
- * - #createIOSSwitchElement: - Prepares the hidden DOM element for iOS hack
- * ===============================================================
+ * - #pulse()                - Central dispatcher that handles the actual hardware communication and throttling.
+ * - #createIOSSwitchElement() - Injects a hidden checkbox into the DOM to exploit the iOS haptic behavior.
+ *
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * This component does not raise any custom events.
+ *
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * This component does not provide any CSS variables.
  */
 export class Haptic extends Library {
 

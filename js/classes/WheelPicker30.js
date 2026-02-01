@@ -5,38 +5,69 @@ import { Wheel } from './Wheel.js';
 import { NOT_FOUND } from '../constants.js';
 
 /**
- * WheelPicker — Wheel-based picker overlay
- * modes: time / hours / spin / date / custom
+ * @file WheelPicker30.js
+ * @module WheelPicker
+ * @extends Library
+ * @version 3.0.0
+ * @author Jens-Olaf-Mueller
+ *
+ * WheelPicker — A highly configurable, wheel-based selection overlay.
  * ==============================================================================
  *
- * Renders a modal/overlay picker for a single input element and manages
- * one or more `Wheel` instances depending on the selected mode.
- *
- * Core responsibilities:
- * - read initial configuration from HTML attributes and/or constructor options
- * - parse the external input value into internal per-wheel active values
- * - build and initialize the required wheels for the current mode
- * - keep `#activeValues` in sync via wheel snap callbacks
- * - format the current selection back to a string (or object in custom mode)
- * - apply/cancel selection and raise DOM events (`input` / `cancel`)
+ * Provides a modal interface for selecting values via one or more rotating wheels.
+ * - Key Features:
+ *   - Features dedicated logic for these modes:
+ *     - 'time'
+ *     - 'hours'
+ *     - 'spin'
+ *     - 'date'
+ *     - 'custom'
+ *   - Smart Parsing: Automatically resolves input values and formats output strings or objects per mode.
+ *   - Dynamic Step Logic: Handles minute steps, fractional hours (e.g., 0.5h → 30m), and CSV-based value lists.
+ *   - Flexible Data Sources: Accepts CSV strings, arrays, or object maps for custom wheel configurations.
+ *   - Haptic Integration: Synchronizes with the `Haptic` engine for tactile feedback during scrolling and snapping.
  *
  * ---------------------------------------------------------------
  * I. Public Methods
  * ---------------------------------------------------------------
- * {@link show}                - renders the overlay UI, initializes wheels, and shows the component
- * {@link hide}                - closes the overlay; optionally applies value; fires `input` or `cancel`
- * {@link initWheels}          - creates and initializes Wheel instances for the current mode (returns success boolean)
- * {@link onPointerDown}       - handles overlay button actions (OK / Cancel) and closes accordingly
+ * - {@link show}           - Renders the overlay UI, arms the haptic system, and initializes the wheels.
+ * - {@link hide}           - Closes the overlay, applies the selection to the input, and fires events.
+ * - {@link initWheels}     - Instantiates and configures the required `Wheel` objects based on the current mode.
+ * - {@link onPointerDown}  - Central handler for the 'OK' and 'Cancel' button actions in the overlay.
  *
  * ---------------------------------------------------------------
  * II. Private Methods
  * ---------------------------------------------------------------
- * #parseExternalValue: - parses the input's string value into `#activeValues` depending on mode
- * #parseDate:          - parses date strings (DD.MM.YYYY / YYYY-MM-DD / Date.parse fallback) into parts
- * #getDaysOfMonth:     - returns the last day number for a given month/year
- * #handleWheelSnap:    - receives wheel snap callbacks; updates `#activeValues`; validates date wheels
- * #formatValue:        - formats current internal values into the output representation per mode
- * #coerceValue:        - clamps/normalizes internal values per mode before formatting
+ * - #parseExternalValue()  - Deconstructs the connected input's string into internal active values.
+ * - #parseDate()           - Robust date string parser supporting multiple regional formats.
+ * - #getDaysOfMonth()      - Calculates the correct date-range for the day-wheel validation.
+ * - #handleWheelSnap()     - Callback for wheel stabilization; updates values and validates cross-wheel dependencies.
+ * - #formatValue()         - Reconstructs the internal state into the finalized output string or object.
+ * - #coerceValue()         - Ensures values remain within specified min/max/clamping ranges before output.
+ *
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * @event input {Object}   - Fires when the selection is confirmed (OK button).
+ * @event cancel {Object}  - Fires when the overlay is closed without applying changes.
+ *
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * All variables are prefixed with '--wheel-' and follow kebab-case naming.
+ * - --wheel-items-visible      - Number of items shown simultaneously in the wheel view.
+ * - --wheel-item-height        - The vertical height of a single selectable item.
+ * - --wheel-backdrop-color     - Background color of the modal overlay backdrop.
+ * - --wheel-grid-color         - Color of the separator lines within the picker.
+ * - --wheel-bg-color           - Main background color of the picker dialog.
+ * - --wheel-button-bg-color    - Background color for the confirmation (OK) button.
+ * - --wheel-text-color         - Primary text color for wheel items and labels.
+ * - --wheel-accent-color       - Accent color for the selected item or title.
+ * - --wheel-selection-bg-color - Background highlight color for the selection area.
+ * - --wheel-dialog-border-radius - Corner radius of the picker dialog.
+ * - --wheel-dialog-box-shadow  - Shadow styling for the picker overlay.
+ * - --wheel-gradient-dark      - The darker stop of the masking gradient overlay.
+ * - --wheel-gradient-light     - The lighter stop of the masking gradient overlay.
  */
 export class WheelPicker extends Library {
 

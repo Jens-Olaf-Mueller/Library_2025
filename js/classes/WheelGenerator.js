@@ -1,56 +1,62 @@
 import { NOT_FOUND } from '../constants.js';
 
 /**
- * ListGenerator — parent class for {@link Wheel}
+ * @file WheelGenerator.js
+ * @module ListGenerator
+ * @version 1.0.1
+ * @author Jens-Olaf-Mueller
+ *
+ * WheelGenerator — Parent class and logic engine for {@link Wheel}.
  * ===============================================================
  *
- * Lightweight helper that manages a list (<ul>) inside a given column element.
- * It creates, appends, queries, and removes <li> items and exposes convenience
- * getters for item access, active item detection, and value parsing.
- *
- * The class is designed to be used by a wheel/spinner component:
- * - items use the CSS class `wheel-item`
- * - the active item is identified by `.wheel-item--active`
- * - item identity is stored in `data-item` and `value`
- *
- * Notes:
- * - `createElement` is expected to be provided/injected (e.g. from a shared Library factory).
- * - `stringTo` can optionally be injected via constructor `options` and is used for custom wheel captions.
+ * Lightweight helper that manages a <ul> list inside a column and handles the mathematical generation of wheel items.
+ * - Key Features:
+ *   - DOM Management: Creates, appends, and removes <li> items with specialized classes like `.wheel-item--active`.
+ *   - Versatile Generators: Includes dedicated builders for:
+ *     - 'spin',
+ *     - 'decimal',
+ *     - 'hours',
+ *     - 'minutes',
+ *     - 'date',
+ *     - 'custom' wheels.
+ *   - Precision Logic: Handles floating-point corrections and step-based rounding for numeric wheels.
+ *   - Custom Data Mapping: Converts CSV strings, arrays, or objects into displayable wheel captions and values.
  *
  * ---------------------------------------------------------------
  * I. Public API
  * ---------------------------------------------------------------
- *
- * - {@link column}               - read-only reference to the owning column container
- * - {@link list}                 - shorthand reference to the underlying <ul>
- * - {@link items}                - array of current <li> elements
- * - {@link itemsCount}           - number of list items
- * - {@link activeItem}           - currently active <li> ('.wheel-item--active') or null
- * - {@link value}                - parsed value of the active item (number if numeric; otherwise raw string)
- *
- * - {@link addItem}              - creates and appends a new <li> item (optionally at an index)
- * - {@link removeItem}           - removes an item by index or by exact text match
- * - {@link getItem}              - returns an item by index or by exact text match
- * - {@link clear}                - removes all items from the list
+ * - {@link column}      - Read-only reference to the owning column container.
+ * - {@link list}        - Shorthand reference to the underlying <ul> element.
+ * - {@link items}       - Returns an array of current <li> elements.
+ * - {@link itemsCount}  - Returns the number of items currently in the list.
+ * - {@link activeItem}  - Returns the currently active <li> ('.wheel-item--active').
+ * - {@link value}       - Returns the parsed value of the active item (number or string).
+ * - {@link addItem}     - Creates and appends a new <li> item at a specific position.
+ * - {@link removeItem}  - Removes an item by index or by exact text match.
+ * - {@link getItem}     - Retrieves an item by its index or text content.
+ * - {@link clear}       - Removes all items from the list.
  *
  * ---------------------------------------------------------------
  * II. Internal / Helper Methods
  * ---------------------------------------------------------------
- * - {@link _createListItem}       - creates a wheel <li> element via `createElement()`
- * - {@link _getWheelConfig}       - resolves a wheel configuration by role
+ * - {@link _createListItem} - Creates a wheel <li> element via an injected `createElement` factory.
+ * - {@link _getWheelConfig} - Resolves and executes the appropriate builder based on the wheel's role.
  *
  * ---------------------------------------------------------------
- * III. Private Methods
+ * III. Private Methods (Builders)
  * ---------------------------------------------------------------
- * - {@link #buildSpinWheel}       - builds values/format for a numeric spinner wheel (supports open-ended max)
- * - {@link #buildDecimalWheel}    - builds values/format for decimal-hours wheel (minutes-based)
- * - {@link #buildHoursWheel}      - builds values/format for hours (00–23)
- * - {@link #buildMinutesWheel}    - builds values/format for minutes (0–59, step-based, optional padding)
- * - {@link #buildDateWheel}       - builds values/format for day/month/year
- * - {@link #buildCustomWheel}     - builds values/format for custom data sources (array/string/object)
- * - {@link #coerceValue}          - normalizes the active value based on wheel role constraints
+ * - #buildSpinWheel()    - Generates values for numeric spinners, supporting open-ended max values.
+ * - #buildDecimalWheel() - Builds minute-based wheels for decimal-hour representation.
+ * - #buildHoursWheel()   - Generates a standard 00–23 hour list.
+ * - #buildMinutesWheel() - Generates minute steps (0–59) with optional padding for small lists.
+ * - #buildDateWheel()    - Builds numeric ranges for day, month (localized), or year wheels.
+ * - #buildCustomWheel()  - Parses custom data sources into captions and internal values.
+ * - #coerceValue()       - Normalizes and clamps input values based on the specific wheel role.
  *
- * @version 1.0.1
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * This logic class does not provide CSS variables. Theming is managed by the `WheelPicker`.
  */
 export class WheelGenerator {
 

@@ -11,55 +11,74 @@ import { LoadManager } from './classes/LoadManager.js';
 import $, {format$} from './utils.js';
 
 document.addEventListener('beforeShow', globalEventHandler);
-document.addEventListener('beforeClose', globalEventHandler);
+document.addEventListener('close', globalEventHandler);
+document.addEventListener('cancel', globalEventHandler);
+document.addEventListener('buttonClick', globalEventHandler);
 document.addEventListener('onweekclick', globalEventHandler);
 document.addEventListener('ondateclick', globalEventHandler);
 document.addEventListener('expand', globalEventHandler);
 document.addEventListener('input', globalEventHandler);
 document.addEventListener('overflow', globalEventHandler);
 
+
 // const msgbox = new MessageBox("Mal sehen, ob's läuft...", null, 'OK, Close, Load', true, true);
-// const msgbox = new MessageBox({prompt: "Mal sehen, ob's läuft...", buttons: 'OK, Close, Load', closeButton: true});
+const msgbox = new MessageBox({prompt: "Mal sehen, ob's läuft...", buttons: 'OK, Close, Load', closeButton: true});
+// msgbox.debugMode = false;
+// const msgbox = new MessageBox();
+// msgbox.closeButton = false;
+
+const result = await msgbox.show({
+    prompt: `Das ist noch die alte MessageBox!\n\nDie läuft auch noch?`,
+    title: 'Neue MessageBox!',
+    buttons: [
+        {caption: 'Ja', value: true, default: true},
+        {caption: 'Nein', value: false, default: false},
+        {caption: 'Abbrechen', value: null, default: false, cancel: true},
+        'Hallo, das ist ein langer Button...'
+    ],
+    modal: true,
+    closeButton: true}
+);
+
+// const result = await msgbox.show("Mal sehen, ob's läuft...",'Boxx','OK, Close, Load',true, true);
+
+
+
+console.log('Antwort: ' + msgbox.value)
+
+console.log('Postleitzahl von Zug ist: ' + format$(6300,'CH-####')); // → OK
+console.log('Tel. Nr: ' + format$(799294262,'+41 (#)## ### ####')); //  → OK
+console.log('BV-Nr: ' + format$(42026,'###-####')); //                  → OK
+console.log('Zeit: ' + format$(730,'##:##')); //                        → OK
+console.log('Zahl: ' + format$(485105,'#.##','en-US')); //                       → FALSCH! Richtig ==> 481,05 !!!
+console.log('Zahl: ' + format$('003','#,##')); //                           → FALSCH! Richtig ==>   3,00 !!!
+console.log('Zahl: ' + format$(7600000.025,'#,#')); //                           → FALSCH! Richtig ==>   3,00 !!!
+console.log('Zahl: ' + format$(888.025,'#')); //                           → FALSCH! Richtig ==>   3,00 !!!
+
 // msgbox.gradientFrom = 'white';
 // msgbox.fade = true;
 // msgbox.autoClose= 5;
 // msgbox.includeReadOnlyProperties = true;
-// const result = await msgbox.show();
-const body = document.getElementById('demoBody');
-const colors = new ColorHandler(body);
+
+// $('btnMessageBox').addEventListener('click', run);
+
+
+const colors = new ColorHandler(document.body);
 const lib = new Library();
 
 console.log(lib)
 
-document.addEventListener('DOMContentLoaded', run);
+// document.addEventListener('DOMContentLoaded', run);
 
 // const pbar = $('prgBar');
 // const spnPercent = $('spnPercent');
 // const loader = new LoadManager({scripts: true, styles: true, markup: true},'lblProgressBar')
 
-// // This event only fires if loading takes longer than 150ms
-// window.addEventListener('loadstart', () => {
-//     // pbar.parentElement.removeAttribute('hidden');
-//     loader.visible = true;
-// });
-
-// window.addEventListener('loadprogress', (e) => {
-//     pbar.value = e.detail.percent;
-//     spnPercent.innerText= `${e.detail.percent.toFixed(0)}%`;
-//     // console.log(`Loading...${e.detail.url}`)
-// });
-
-// window.addEventListener('loadcomplete', (e) => {
-//     pbar.value = 100;
-//     console.log("Loading complete. Total bytes:", e.detail.totalBytes);
-//     // pbar.parentElement.setAttribute('hidden','');
-//     loader.visible = false;
-//     console.log(loader)
-// });
 
 
 async function run() {
     // await loader.loadAll('assets.json');
+    // const result = await msgbox.show();
 }
 
 // const scanner = new AssetScanner();
@@ -74,6 +93,7 @@ async function run() {
 
 // const calculator = new Calculator(true, 'inpBuddy');
 const calculator = new Calculator();
+calculator.debugMode = false;
 // calculator.visible = true;
 // calculator.show();
 

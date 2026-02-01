@@ -1,57 +1,55 @@
-import $, { format$ } from '../utils.js';
+import $, { format$ as _format$} from '../utils.js';
 import { OBJ_COMPONENTS } from '../constants.js';
 
 /**
- * Library — Universal base class for UI components
+ * @file Library.js
+ * @module Library
+ * @version 2.1.0
+ * @author Jens-Olaf-Mueller
+ *
+ * Library — Universal base class for UI components.
  * ===============================================================
  *
- * Provides a consistent foundation for UI components that need:
- * - a main DOM element reference (`element`) and an optional parent class or element (`parent`)
- * - a shared DOM cache (`this.DOM`) populated by `renderUI()`
- * - a visibility toggle that maps to the `hidden` attribute (`visible`)
- * - an enabled propery ( can be used for CSS styling )
- * - a safe element factory (`createElement()`) supporting:
- *   - event binding via `on*` keys
- *   - boolean attribute semantics (presence/absence)
- *   - style objects and text helpers
- *   - special handling for <li value="..."> to preserve non-integer values
- * - event dispatch helper (`_raiseEvent()`) for component communication
- * - string transformation utilities (`stringTo()`) used across components
- * - UI skeleton creation from `OBJ_COMPONENTS` via `renderUI()` with optional CSS injection
- *
- * Notes:
- * - `renderUI()` builds a component tree from `OBJ_COMPONENTS`, caches IDs into `this.DOM`,
- *   and stores the component root element in `this.rootElement`.
- * - `_injectCSS()` injects :root CSS variables from `OBJ_COMPONENTS` and applies protected inline defaults.
+ * Provides a consistent foundation for DOM management, event handling, and utility functions.
+ * - Key Features:
+ *   - DOM Management: Centralized `element` and `parent` handling with an integrated `this.DOM` cache.
+ *   - Element Factory: `createElement()` handles event binding, style objects, and boolean attribute semantics.
+ *   - UI Automation: `renderUI()` builds complex component trees from `OBJ_COMPONENTS` with recursive logic.
+ *   - Theming Engine: `_injectCSS()` manages component-scoped CSS variables and protected inline styles.
+ *   - Platform Detection: Static engine detection for tailored behavior on iOS, Android, and Desktop.
  *
  * ---------------------------------------------------------------
  * I. Public Methods
  * ---------------------------------------------------------------
- *
- * - {@link properties}           - returns readable/writable property names (optionally includes read-only getters)
- *
- * - {@link isClassInstance}      - checks whether a value is a class instance (not a plain object)
- * - {@link arrayIsTypeOf}        - checks whether an array contains only a specific primitive/object type
- * - {@link toBoolean}            - coerces heterogeneous truthy values into a boolean
- * - {@link stringTo}             - converts a string to camel/kebab/snake/caps/camel-dash or parses to an object
- * - {@link createElement}        - creates/updates an element from an attribute map (props, attrs, events, booleans)
- * - {@link setCSSProperty}       - sets a CSS custom property on :root or an element
- * - {@link getCSSProperty}       - reads a CSS custom property from :root or an element
- * - {@link renderUI}             - builds and appends the component DOM tree from `OBJ_COMPONENTS` (recursive builder)
- * - {@link log}                  - global log system for debugging and component messages
+ * - {@link properties}           - Returns all readable/writable property names of the instance.
+ * - {@link isClassInstance}      - Validates if a value is a class instance rather than a plain object.
+ * - {@link arrayIsTypeOf}        - Checks if an array contains only a specific primitive or object type.
+ * - {@link toBoolean}            - Coerces various truthy/falsy values into a strict boolean.
+ * - {@link stringTo}             - Transforms strings between camel, kebab, snake, and object formats.
+ * - {@link createElement}        - Creates or updates DOM elements with advanced attribute and event mapping.
+ * - {@link setCSSProperty}       - Sets a CSS custom property globally or on a specific element.
+ * - {@link getCSSProperty}       - Reads a CSS custom property value from the DOM.
+ * - {@link getStyle}             - Retrieves computed style values for a given property.
+ * - {@link renderUI}             - Builds the component's DOM structure from configuration objects.
+ * - {@link log}                  - Component-aware logging system with debug mode and color coding.
+ * - {@link format$}              - Universal format function for numbers, dates, times and masked strings
  *
  * ---------------------------------------------------------------
  * II. Protected / Internal Methods
  * ---------------------------------------------------------------
- * - {@link _raiseEvent}          - dispatches a CustomEvent from element/parent/document with `detail`
- * - {@link _injectCSS}           - injects component CSS variables and applies protected inline defaults
+ * - {@link _raiseEvent}          - Dispatches CustomEvents for inter-component communication.
+ * - {@link _injectCSS}           - Injects dynamic CSS variables and applies protected layout defaults.
  *
  * ---------------------------------------------------------------
- * III. Private Methods
+ * III. Events
  * ---------------------------------------------------------------
- * - {@link #setElement()}          - resolves a DOM reference from an HTMLElement or an ID string
+ * This base class provides the infrastructure for events but does not raise any by itself.
  *
- *  @version 2.1.0
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * This base class does not define specific component variables.
+ * Variables are managed dynamically per subclass via `_injectCSS()`.
  */
 export default class Library {
     #rootElement = null;
@@ -498,13 +496,16 @@ export default class Library {
     /**
      * Returns the computed style value of a given property for an element.
      * Uses the internal stringTo() method for consistent property naming.
-     * @param {HTMLElement|string} expression - Element or ID string.
-     * @param {string} styleProp - CSS property name (e.g., 'font-size' or 'backgroundColor').
+     * @param {HTMLElement|string} element - Element or ID string.
+     * @param {string} [styleProp] - optional CSS property name (e.g., 'font-size' or 'backgroundColor').
      * @returns {string|undefined}
      */
-    getStyle(expression, styleProp) {
-        const elmt = (expression instanceof HTMLElement) ? expression : (this.DOM[expression] || $(expression));
+    getStyle(element, styleProp) {
+        const elmt = (element instanceof HTMLElement) ? element : (this.DOM[element] || $(element));
         if (!elmt) return undefined;
+
+        // if no property is specified, return the whole style object!
+        if (!styleProp) return window.getComputedStyle(elmt, null);
 
         const cssProperty = this.stringTo(styleProp, 'kebab');
         if (window.getComputedStyle) {
@@ -571,6 +572,21 @@ export default class Library {
                 }
             }
         }
+    }
+
+    /**
+     * Universal formatting utility for dates, masked strings, and numbers.
+     * Supports localized number formatting with optional digit grouping (thousands separator).
+     *
+     * @param {Date|number|string} expression - The value to be formatted.
+     * @param {string} [format='#,##'] - The format pattern or mask.
+     * @param {object} [options] - Configuration object.
+     * @param {string} [options.locale='de-DE'] - Locale for names and separators.
+     * @param {boolean} [options.useGrouping=false] - Whether to use thousands separators in numbers.
+     * @returns {string} The formatted output.
+     */
+    format$(expression, format = '#,##', options = {locale: 'de-DE', useGrouping: false}) {
+        return _format$(expression, format, options);
     }
 
    /**
@@ -785,7 +801,10 @@ export default class Library {
         if (!styleSheetExists) {
             const styleElmt = this.createElement('style', {
                 id: styleId,
-                textContent: `:root {\n  ${varLines.join('\n  ')}\n}`
+                // textContent: `:root {\n  ${varLines.join('\n  ')}\n}`
+                // // 🟢➕ ADDED: Static CSS from OBJ_COMPONENTS.css.textContent
+                textContent: `:where(:root) {\n    ${varLines.join('\n    ')}\n} \n ${cssInfo.textContent?.replace(/^[ \t]+/gm, '') || ''}`
+                // NOTE regEx removes tabs + spaces in template string!
             });
             document.head.appendChild(styleElmt);
         }

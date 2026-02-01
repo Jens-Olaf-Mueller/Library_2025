@@ -2,22 +2,46 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * @module      AssetScanner
- * @version     1.1.0
- * @author      Jens-Olaf Müller
- * @description A high-performance Node.js utility class designed to recursively
- * scan a project directory. It collects metadata (file size, type,
- * and web-relative paths) to generate a 'Single Source of Truth' JSON manifest.
+ * @author Jens-Olaf Müller
+ * @file AssetScanner.mjs
+ * @module AssetScanner
+ * @version 1.1.0
  *
- * This manifest is used by:
- * 1. LoadManager: For precise UI progress tracking.
- * 2. ServiceWorker: For automated offline asset caching.
+ * AssetScanner — High-performance Node.js manifest generator.
+ * ===============================================================
+ *
+ * Recursively scans a project directory to collect metadata and generate a JSON manifest.
+ * - Key Features:
+ *   - Manifest Generation: Creates a 'Single Source of Truth' for LoadManager and ServiceWorker.
+ *   - Recursive Scanning: Automatically traverses nested directory structures to find all assets.
+ *   - Metadata Collection: Captures file size, asset type, and generates web-friendly relative paths.
+ *   - Smart Filtering: Features a blacklist for system files (.DS_Store) and environment folders (node_modules, .git).
+ *   - Type Mapping: Categorizes files into image, audio, video, style, or script based on extensions.
  *
  * ---------------------------------------------------------------
  * I. Public Methods
  * ---------------------------------------------------------------
- * {@link scan}                - scans all files from the rootPath property and generates the output .json file
+ * - {@link scan} - Initiates the scanning process and writes the result to a JSON file.
  *
+ * ---------------------------------------------------------------
+ * II. Private Methods
+ * ---------------------------------------------------------------
+ * - #scanDirectory() - Core recursive engine that reads the file system and collects file stats.
+ * - #getAssetType()  - Internal mapping logic for file extensions to LoadManager-compatible types.
+ *
+ * ---------------------------------------------------------------
+ * III. Events
+ * ---------------------------------------------------------------
+ * This Node.js utility does not raise browser-based custom events.
+ *
+ * ---------------------------------------------------------------
+ * IV. CSS Variables (Theming API)
+ * ---------------------------------------------------------------
+ * This component does not provide any CSS variables.
+ *
+ * ---------------------------------------------------------------
+ * V. Example
+ * ---------------------------------------------------------------
  * @example     import AssetScanner from './js/classes/AssetScanner.mjs';
  * const scanner = new AssetScanner({ path: './', markup: true, scripts: true });
  * scanner.scan();
